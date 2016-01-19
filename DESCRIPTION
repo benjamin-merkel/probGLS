@@ -1,0 +1,9 @@
+Package: ProMM
+Title: probabalistic movement model for geolocation data
+Version: 0.1
+Author: Benjamin Merkel <benjamin.merkel@npolar.no>
+Description: probabalistic movement model to analyze geolocation data with some side functions
+Depends: R (>= 3.2.3)
+License: creative commons
+LazyData: true
+RoxygenNote: 5.0.1
