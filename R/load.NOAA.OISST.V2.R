@@ -1,3 +1,24 @@
+#' load NOAA OISST V2
+#' 
+#' This function takes 1-year-long NetCDF files of daily SST from the
+#' ftp://ftp.cdc.noaa.gov/Datasets/noaa.oisst.v2.highres/ directory
+#' where filenames for daily mean SST files are named with the scheme
+#' sst.day.mean.YEAR.v2.nc
+#' @param fname full path to NetCDF data file
+#' @param lsmask full path to land-sea mask NetCDF file
+#' @param lonW western-most longitude of search area, must be smaller than lonE
+#' @param lonE eastern-most longitude of search area, must be larger than lon1
+#' @param latS southern-most latitude of search area, must be smaller than latN
+#' @param latN northern-most latitude of search area, must be larger than latS
+#' @param date1 first date in file to extract, must be Date class
+#' @param date2 last date in file to extract, must be Date class
+#' @param use.landmask use land mask
+#' @param extract.value which data to extract: "sst" - SST, "err" - SST error, "icec" - sea ice concentration
+#' @return A data.frame for further use in GeoLight or ProMM
+#' @export
+
+
+
 # taken from the script FUNCTION_load.sst
 
 load.NOAA.OISST.V2 = function(fname,lsmask,lonW,lonE,latS,latN, 

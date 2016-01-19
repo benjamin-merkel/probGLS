@@ -1,7 +1,7 @@
 #' transform .trn file into data frame
 #' 
 #' transform biotrack or BAS .trn files into a data frame
-#' @param trnfile
+#' @param trnfile the trn file to be transformed
 #' @return A data.frame for further use in GeoLight or ProMM
 #' @export
 

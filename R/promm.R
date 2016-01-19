@@ -1,5 +1,38 @@
-## things to add
-#  - is there a pixel with land inbetween positions? if yes remove next position
+#' probabalistic movement model for geolocation data
+#' 
+#' modeling stuff 
+#' @param particle.number number of particles for each location cloud used in the model
+#' @param bootstrap.number number of iterations
+#' @param loess.quartile quartiles for loess.filter (Geolight), if NULL then loess filter is not used
+#' @param colony colony longitude and latitude
+#' @param tagging.date deployment data
+#' @param retrieval.date  retrieval date
+#' @param twilight.sd sd around each unsrise or sunset event in min
+#' @param range.sun.elev min and max sun angle in degree, resolution of sun elevation angle
+#' @param min.lat min latitude where you expect an animal
+#' @param max.lat max latitude where you expect an animal
+#' @param optimal.speed optimal speed of the animal in m/s
+#' @param speed.sd speed sd in m/s
+#' @param max.speed.allowed maximum speed allowed in m/s
+#' @param sst.sd SST sd in degree C
+#' @param max.sst.diff max difference in SST allowed in degree C
+#' @param days.around.spring.equinox days before equinox, days after equinox
+#' @param days.around.fall.equinox days before equinox, days after equinox
+#' @param ice.conc.cutoff min percentage of sea ice in which there are no birds
+#' @param plot.it plot each step
+#' @param boundary.box min lon, max lon, min lat and max lat of extrem boundary
+#' @param med.black.sea if T remove meditearanian and black sea
+#' @param baltic.sea if T remove baltic sea
+#' @param caspian.sea if T remove caspian sea
+#' @param east.west.comp if T apply biotrack east west movement compensation
+#' @param slog3 sensor data input
+#' @param ho2 sunrise and sunset data input 
+#' @param act activity data input
+#' @param landmask.location directory location of land mask file
+#' @param NOAA.OI.location directory location of NOAA OI V2 files
+#' @return A list of modeling results: [1] bootstrapped data, [2] geographic median position, [3] raw data, [4] raw data prepared, [5] all possible particles, [7] daily sensor data, [8] time.taken
+#' @export
+
 
 
 promm <-  function(particle.number             = 500
