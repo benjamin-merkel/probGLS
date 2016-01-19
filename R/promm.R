@@ -74,16 +74,12 @@ library(sampSurf)
 library(maptools)
 library(PBSmapping)
 library(rgdal)
-library(geosphere)
 library(GeoLight)
 library(ncdf4)
 library(fields)
 library(plyr)
 library(spatstat)
-library(SuppDists) # for Johnson distribution
-source("C:/Users/benjamin/Documents/R scripts/FUNCTIONS/FUNCTION_load.sst.optimal.interpolation.R")
 
-f = function(x) function(i) sapply(x, `[[`, i)
   
   
 start.time <- Sys.time()
@@ -106,7 +102,6 @@ col$dtime        <- tagging.date
 col$doy          <- NA
 col$jday         <- NA
 col$year         <- NA
-col$logan        <- NA
 col$type         <- NA
 col$tFirst       <- as.POSIXct(tagging.date)
 col$tSecond      <- as.POSIXct(tagging.date)
@@ -146,8 +141,6 @@ if(is.null(loess.quartile)==F){
   ho2$loes  <- loessFilter(ho2, plot = T, k = loess.quartile)
   ho2       <- ho2[ho2$loes == T,]
 }
-ho2$logan <- paste(ho2$logger_id,ho2$animal_id,ho2$year.retrieved,sep="_")
-ho2$logan<-NA
 
 # west east movement compensation----
 if(east.west.comp==T){
@@ -171,7 +164,7 @@ if(east.west.comp==T){
 }
 
 # subset data to columns of interest-----
-ho3       <- data.frame(subset(ho2,select=c(tFirst,tSecond,type,dtime,doy,jday,year,month,logan)))
+ho3       <- data.frame(subset(ho2,select=c(tFirst,tSecond,type,dtime,doy,jday,year,month)))
 
 # duplicate data frame number of sun.elev range-----
 sun.elev.steps <- length(seq(range.sun.elev[1],range.sun.elev[2],range.sun.elev[3]))  
@@ -355,7 +348,7 @@ for(ts in unique(grr$step)){
       track2$lon[track2$lon<0] <- 360+track2$lon[track2$lon<0]
       
       
-      eoi <- extractOISSTdaily (fname = fname.sst,
+      eoi <- load.NOAA.OISST.V2 (fname = fname.sst,
                                 lsmask= landmask.location,
                                 lonW  = min(track2$lon),
                                 lonE  = max(track2$lon),
@@ -365,7 +358,7 @@ for(ts in unique(grr$step)){
                                 date2 = as.Date(paste(track2$year[1],track2$month[1],track2$day[1],sep="-")),
                                 extract.value='sst')
       
-      eii <- extractOISSTdaily (fname = fname.ice,
+      eii <- load.NOAA.OISST.V2 (fname = fname.ice,
                                 lsmask= landmask.location,
                                 lonW  = min(track2$lon),
                                 lonE  = max(track2$lon),
@@ -375,7 +368,7 @@ for(ts in unique(grr$step)){
                                 date2 = as.Date(paste(track2$year[1],track2$month[1],track2$day[1],sep="-")),
                                 extract.value='icec')
       
-      eri <- extractOISSTdaily (fname = fname.err,
+      eri <- load.NOAA.OISST.V2 (fname = fname.err,
                                 lsmask= landmask.location,
                                 lonW  = min(track2$lon),
                                 lonE  = max(track2$lon),
@@ -408,7 +401,7 @@ for(ts in unique(grr$step)){
       
     } else {
       track2$lon[track2$lon<0] <- 360+track2$lon[track2$lon<0]
-      eoi <- extractOISSTdaily (fname = fname.sst,
+      eoi <- load.NOAA.OISST.V2 (fname = fname.sst,
                                 lsmask= landmask.location,
                                 lonW  = 0,
                                 lonE  = min(track2$lon),
@@ -417,7 +410,7 @@ for(ts in unique(grr$step)){
                                 date1 = as.Date(paste(track2$year[1],track2$month[1],track2$day[1],sep="-")),
                                 date2 = as.Date(paste(track2$year[1],track2$month[1],track2$day[1],sep="-")))
       
-      eii <- extractOISSTdaily (fname = fname.ice,
+      eii <- load.NOAA.OISST.V2 (fname = fname.ice,
                                 lsmask= landmask.location,
                                 lonW  = 0,
                                 lonE  = min(track2$lon),
@@ -427,7 +420,7 @@ for(ts in unique(grr$step)){
                                 date2 = as.Date(paste(track2$year[1],track2$month[1],track2$day[1],sep="-")),
                                 extract.value='icec')
       
-      eri <- extractOISSTdaily (fname = fname.err,
+      eri <- load.NOAA.OISST.V2 (fname = fname.err,
                                 lsmask= landmask.location,
                                 lonW  = 0,
                                 lonE  = min(track2$lon),
@@ -445,7 +438,7 @@ for(ts in unique(grr$step)){
       eri2  <-  as.data.frame(as.table(as.matrix(eri[,,1])))
       colnames(eri2) <- c("Lat","Long",'V1') 
       
-      eoi <- extractOISSTdaily (fname = fname.sst,
+      eoi <- load.NOAA.OISST.V2 (fname = fname.sst,
                                 lsmask= landmask.location,
                                 lonW  = max(track2$lon),
                                 lonE  = 360,
@@ -454,7 +447,7 @@ for(ts in unique(grr$step)){
                                 date1 = as.Date(paste(track2$year[1],track2$month[1],track2$day[1],sep="-")),
                                 date2 = as.Date(paste(track2$year[1],track2$month[1],track2$day[1],sep="-")))
       
-      eii <- extractOISSTdaily (fname = fname.ice,
+      eii <- load.NOAA.OISST.V2 (fname = fname.ice,
                                 lsmask= landmask.location,
                                 lonW  = max(track2$lon),
                                 lonE  = 360,
@@ -464,7 +457,7 @@ for(ts in unique(grr$step)){
                                 date2 = as.Date(paste(track2$year[1],track2$month[1],track2$day[1],sep="-")),
                                 extract.value='icec')
       
-      eri <- extractOISSTdaily (fname = fname.err,
+      eri <- load.NOAA.OISST.V2 (fname = fname.err,
                                 lsmask= landmask.location,
                                 lonW  = max(track2$lon),
                                 lonE  = 360,
@@ -595,7 +588,6 @@ for(ts in unique(grr$step)){
         new.r[[botts]]$doy          <- gr2[[botts]]$doy[random.point[[botts]]]
         new.r[[botts]]$jday         <- gr2[[botts]]$jday[random.point[[botts]]]
         new.r[[botts]]$year         <- gr2[[botts]]$year[random.point[[botts]]]
-        new.r[[botts]]$logan        <- gr2[[botts]]$logan[random.point[[botts]]]
         new.r[[botts]]$type         <- gr2[[botts]]$type[random.point[[botts]]]
         new.r[[botts]]$tFirst       <- gr2[[botts]]$tFirst[random.point[[botts]]]
         new.r[[botts]]$tSecond      <- gr2[[botts]]$tSecond[random.point[[botts]]]
@@ -636,25 +628,12 @@ for(ts in unique(grr$step)){
     #new.r2 <- subset(new.r2,select=names(empty.spdf))
     if(iter==1) newt2 <- new.r2 else newt2 <- rbind(newt2,new.r2)
     
-    # plot step ----
-    if(plot.it==T){
-      print(
-      par(mar=c(0,0,0,0))
-      ,plot(sstd)
-      ,plot(gr3,add=T,cex=0.2)
-      ,plot(coastline,add=T,col=5)
-      ,for(o in 1:bootstrap.number) plot(new.r[[o]],add=T,col=4)
-      )
-    }
-    
-    
   }
-  
-  
+
   step.end <- Sys.time()
   step.time <- step.end - step.start
   
-  print(paste(as.Date(gr3$dtime)[1],'  -  ',ts," of ",length(unique(grr$step)),' steps  -  ',round(step.time,2),' sec',sep=""))  
+  cat(paste(as.Date(gr3$dtime)[1],'  -  ',ts," of ",length(unique(grr$step)),' steps  -  ',round(step.time,2),' sec\n',sep=""))  
 }
 
 #backup <- newt2
