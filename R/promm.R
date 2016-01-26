@@ -9,8 +9,6 @@
 #' @param retrieval.date  retrieval date
 #' @param twilight.sd sd around each unsrise or sunset event in min
 #' @param range.sun.elev min and max sun angle in degree, resolution of sun elevation angle
-#' @param min.lat min latitude where you expect an animal
-#' @param max.lat max latitude where you expect an animal
 #' @param optimal.speed optimal speed of the animal in m/s
 #' @param speed.sd speed sd in m/s
 #' @param max.speed.allowed maximum speed allowed in m/s
@@ -20,14 +18,14 @@
 #' @param days.around.fall.equinox days before equinox, days after equinox
 #' @param ice.conc.cutoff min percentage of sea ice in which there are no birds
 #' @param plot.it plot each step
-#' @param boundary.box min lon, max lon, min lat and max lat of extrem boundary
+#' @param boundary.box min lon, max lon, min lat and max lat of extrem boundary where you expect an animal to be
 #' @param med.black.sea if T remove meditearanian and black sea
 #' @param baltic.sea if T remove baltic sea
 #' @param caspian.sea if T remove caspian sea
 #' @param east.west.comp if T apply biotrack east west movement compensation
-#' @param slog3 sensor data input
-#' @param ho2 sunrise and sunset data input 
-#' @param act activity data input
+#' @param sensor sensor data input
+#' @param trn sunrise and sunset data input 
+#' @param act wet dry data input
 #' @param landmask.location directory location of land mask file
 #' @param NOAA.OI.location directory location of NOAA OI V2 files
 #' @return A list of modeling results: [1] bootstrapped data, [2] geographic median position, [3] raw data, [4] raw data prepared, [5] all possible particles, [7] daily sensor data, [8] time.taken
@@ -35,36 +33,32 @@
 
 
 
-promm <-  function(particle.number             = 500
-                           ,bootstrap.number            = 100
-                           ,loess.quartile              = NULL  #quartiles for Geolight, if NULL then loess filter is not used
-                           ,colony                      = c(15.15,78.17) # colony longitude and latitude
-                           ,tagging.date                = as.POSIXct("2014-06-22")
-                           ,retrieval.date              = as.POSIXct("2015-07-05")
-                           ,twilight.sd                 = 10           # in min
-                           ,range.sun.elev              = c(-7,-1,0.1) # min and max sun angle in degree, resolution of sun elevation angle
-                           ,min.lat                     = 40           # min latitude where you expect a bird
-                           ,max.lat                     = 90           # max latitude where you expect a bird
-                           ,optimal.speed               = 20           # in m/s
-                           ,speed.sd                    = 0.2          # in m/s
-                           ,max.speed.allowed           = 25           # in m/s
-                           ,sst.sd                      = 0.5            # in degree C
-                           ,max.sst.diff                = 3            # in degree C
-                           ,days.around.spring.equinox  = c(5,5)     # days before equinox, days after equinox
-                           ,days.around.fall.equinox    = c(5,5)     # days before equinox, days after equinox
-                           ,ice.conc.cutoff             = 0.9          # min percentage of sea ice in which there are no birds
-                           ,plot.it                     = F
-                           ,boundary.box                = c(-90,70,-55,90) # min lon, max lon, min lat, max lat
-                           ,med.black.sea               = T            # if T remove meditearanian and black sea
-                           ,baltic.sea                  = T            # if T remove baltic sea
-                           ,caspian.sea                 = T            # if T remove caspian sea
-                           ,east.west.comp              = T            # if T apply biotrack east west movement compensation
-                           ,slog3                       = sensor[sensor$SST.remove==F,]         
-                           ,ho2                         = trn 
-                           ,act                         = act
-                           ,landmask.location           = 'E:/environmental data/SST/lsmask.oisst.v2.nc'
-                           ,NOAA.OI.location            = 'E:/environmental data/SST/NOAA OI SST V2'
-                           ){
+promm <-  function( particle.number             = 500
+                   ,bootstrap.number            = 100
+                   ,loess.quartile              = NULL 
+                   ,colony                      = c(0,0)
+                   ,tagging.date                = as.POSIXct("2014-06-22")
+                   ,retrieval.date              = as.POSIXct("2015-07-05")
+                   ,twilight.sd                 = 10         
+                   ,range.sun.elev              = c(-7,-1,0.1)
+                   ,optimal.speed               = 20      
+                   ,speed.sd                    = 0.2      
+                   ,max.speed.allowed           = 25          
+                   ,sst.sd                      = 0.5       
+                   ,max.sst.diff                = 3          
+                   ,days.around.spring.equinox  = c(5,5)   
+                   ,days.around.fall.equinox    = c(5,5) 
+                   ,ice.conc.cutoff             = 0.9    
+                   ,boundary.box                = c(-90,70,-55,90)
+                   ,med.black.sea               = T        
+                   ,baltic.sea                  = T      
+                   ,caspian.sea                 = T    
+                   ,east.west.comp              = T   
+                   ,sensor                       = sensor[sensor$SST.remove==F,] 
+                   ,trn                         = trn 
+                   ,act                         = act
+                   ,landmask.location           = 'E:/environmental data/SST/lsmask.oisst.v2.nc'
+                   ,NOAA.OI.location            = 'E:/environmental data/SST/NOAA OI SST V2'       ){
 
 # load libaries ---------
 library(raster)
@@ -85,8 +79,8 @@ library(spatstat)
 start.time <- Sys.time()
 
 # remove all known data -----
-ho2   <- ho2  [ho2$tFirst >= as.POSIXct(tagging.date) & ho2$tSecond <= as.POSIXct(retrieval.date),]
-slog3 <- slog3[slog3$date >= as.Date(tagging.date)    & slog3$date  <= as.Date(retrieval.date),]
+trn   <- trn  [trn$tFirst >= as.POSIXct(tagging.date) & trn$tSecond <= as.POSIXct(retrieval.date),]
+sensor <- sensor[sensor$date >= as.Date(tagging.date)    & sensor$date  <= as.Date(retrieval.date),]
 act   <- act  [act$dtime  >= as.POSIXct(tagging.date) & act$dtime   <= as.POSIXct(retrieval.date),]
 
 
@@ -138,33 +132,33 @@ min.time.dry <- 186 / max.speed.allowed/3.6
 
 # remove all twilight outliers----
 if(is.null(loess.quartile)==F){
-  ho2$loes  <- loessFilter(ho2, plot = T, k = loess.quartile)
-  ho2       <- ho2[ho2$loes == T,]
+  trn$loes  <- loessFilter(trn, plot = T, k = loess.quartile)
+  trn       <- trn[trn$loes == T,]
 }
 
 # west east movement compensation----
 if(east.west.comp==T){
-  datetime   <- ho2$dtime
-  temp.lon   <- coord(ho2,degElevation=-4,note=F)[,2]
+  datetime   <- trn$dtime
+  temp.lon   <- coord(trn,degElevation=-6,note=F)[,2]
   longitude2 <- -temp.lon
   longitude1 <- -c(NA,temp.lon[1:(length(temp.lon)-1)])
   timedate2  <- as.numeric(datetime)
   timedate1  <- as.numeric(c(NA,datetime[1:(length(datetime)-1)]))
-  length     <- abs(as.numeric(difftime(ho2$tSecond,ho2$tFirst,units="sec")))
+  length     <- abs(as.numeric(difftime(trn$tSecond,trn$tFirst,units="sec")))
   m          <- (longitude2-longitude1)/((timedate2-timedate1)) * length / 15 /2
   ewc        <- data.frame(datetime,longitude2,longitude1,timedate2,timedate1,length,m)
   
-  ewc$tFirst.corrected  <- ho2$tFirst +(ewc$m)
-  ewc$tSecond.corrected <- ho2$tSecond-(ewc$m)
-  ewc$tFirst.corrected [is.na(ewc$tFirst.corrected)]  <- ho2$tFirst [is.na(ewc$tFirst.corrected)]
-  ewc$tSecond.corrected[is.na(ewc$tSecond.corrected)] <- ho2$tSecond[is.na(ewc$tSecond.corrected)]
+  ewc$tFirst.corrected  <- trn$tFirst +(ewc$m)
+  ewc$tSecond.corrected <- trn$tSecond-(ewc$m)
+  ewc$tFirst.corrected [is.na(ewc$tFirst.corrected)]  <- trn$tFirst [is.na(ewc$tFirst.corrected)]
+  ewc$tSecond.corrected[is.na(ewc$tSecond.corrected)] <- trn$tSecond[is.na(ewc$tSecond.corrected)]
   
-  ho2$tFirst  <- ewc$tFirst.corrected
-  ho2$tSecond <- ewc$tSecond.corrected
+  trn$tFirst  <- ewc$tFirst.corrected
+  trn$tSecond <- ewc$tSecond.corrected
 }
 
 # subset data to columns of interest-----
-ho3       <- data.frame(subset(ho2,select=c(tFirst,tSecond,type,dtime,doy,jday,year,month)))
+ho3       <- data.frame(subset(trn,select=c(tFirst,tSecond,type,dtime,doy,jday,year,month)))
 
 # duplicate data frame number of sun.elev range-----
 sun.elev.steps <- length(seq(range.sun.elev[1],range.sun.elev[2],range.sun.elev[3]))  
@@ -182,7 +176,6 @@ ho4[,5] <- as.numeric(as.character(ho4[,5]))
 ho4[,6] <- as.numeric(as.character(ho4[,6]))
 ho4[,7] <- as.numeric(as.character(ho4[,7]))
 ho4[,8] <- as.numeric(as.character(ho4[,8]))
-ho4[,9] <- as.numeric(as.character(ho4[,9]))
 
 # add sun elevation angle-----
 for(k in seq(range.sun.elev[1],range.sun.elev[2],range.sun.elev[3])){
@@ -209,7 +202,7 @@ spring.equinox <- c((80  - days.around.spring.equinox[1]):(80  + days.around.spr
 fall.equinox   <- c((264 - days.around.fall.equinox[1])  :(264 + days.around.fall.equinox[2]))
 
 # assign random latitudes to equinox periods----
-ho4$lat[ho4$doy %in% c(spring.equinox,fall.equinox)] <- sample(seq(min.lat,max.lat,by=0.001),size=length(ho4$lat[ho4$doy %in% c(spring.equinox,fall.equinox)]),replace=T)
+ho4$lat[ho4$doy %in% c(spring.equinox,fall.equinox)] <- sample(seq(boundary.box[3],boundary.box[4],by=0.001),size=length(ho4$lat[ho4$doy %in% c(spring.equinox,fall.equinox)]),replace=T)
 
 # remove sun elevation angle during equinox----
 ho4$sun.elev[ho4$doy %in% c(spring.equinox,fall.equinox)] <- NA
@@ -237,12 +230,18 @@ jt                 <- data.frame(jt=names(sort(table(sp6$loop.step))),
                                  no=sort(table(sp6$loop.step)))
 sp6                <- sp6[sp6$loop.step %in% jt$jt[jt$no>=c(particle.number/5)],]
 
-# remove point clouds with maximum lower then min.lat----
+# remove point clouds with maximum lower then min.lat or minimum higher then max.lat----
 rm.lat           <- data.frame(max.lat=tapply(sp6$lat,sp6$loop.step,max))
 rm.lat$loop.step <- rownames(rm.lat)
 rm.lat$rm        <- 1
-rm.lat$rm[rm.lat$max.lat < min.lat] <- 0
+rm.lat$rm[rm.lat$max.lat < boundary.box[3]] <- 0
 sp7                  <- sp6[sp6$loop.step %in% rm.lat$loop.step[rm.lat$rm==1],]
+
+rm.lat           <- data.frame(min.lat=tapply(sp7$lat,sp7$loop.step,min))
+rm.lat$loop.step <- rownames(rm.lat)
+rm.lat$rm        <- 1
+rm.lat$rm[rm.lat$min.lat > boundary.box[4]] <- 0
+sp7                  <- sp7[sp7$loop.step %in% rm.lat$loop.step[rm.lat$rm==1],]
 
 # remove everything on land-----
 landms               <- raster(landmask.location)
@@ -304,7 +303,7 @@ for(ts in unique(grr$step)){
     
     # calculate what fraction of the time the logger was dry  -----        
     fun.time.dry <- function (x) {
-      #slo2   <- slog3[slog3$date>=(as.Date(x$dtime)-1) & slog3$date<=(max(as.Date(gr3$dtime))+1),]
+      #slo2   <- sensor[sensor$date>=(as.Date(x$dtime)-1) & sensor$date<=(max(as.Date(gr3$dtime))+1),]
       #sumact <- 1-(mean(slo2$wetdry_ratio)-min.time.dry)/24
       #if(sumact > 1) sumact <- 1
       slo2   <- act[act$dtime >= x$tFirst[1] & act$dtime <= max(gr3$tSecond),]
@@ -327,8 +326,8 @@ for(ts in unique(grr$step)){
     # calculate speed and time difference-----
     prev.dtime <- lapply(colt,function(x) x$dtime)
     gr2        <- mapply(cbind,gr2,prev.dtime=prev.dtime, SIMPLIFY = FALSE)
-    gspeed     <- lapply (gr2,FUN=function(x) x$gdist/abs(as.numeric(difftime(x$dtime,x$prev.dtime,units="secs"))*x$time.dry))
-    time.diff  <- lapply (gr2,FUN=function(x) difftime(x$dtime,x$prev.dtime,units="mins"))
+    gspeed     <- lapply (gr2,function(x) x$gdist/abs(as.numeric(difftime(x$dtime,x$prev.dtime,units="secs"))*x$time.dry))
+    time.diff  <- lapply (gr2,function(x) difftime(x$dtime,x$prev.dtime,units="mins"))
     gr2        <- mapply(cbind,gr2,gspeed=gspeed,time.diff=time.diff, SIMPLIFY = FALSE)
     
     # load needed SST, SST error and ice data-----
@@ -530,8 +529,8 @@ for(ts in unique(grr$step)){
     gr3$sat.ice      <- extract(iced,gr3)
     gr3$sat.sst      <- extract(sstd,gr3)
     gr3$sat.sst.err  <- extract(errd,gr3)
-    if(length(slog3$SST[slog3$jday==gr3$jday2[1]])>0)  gr3$tag.sst <- slog3$SST[slog3$jday==gr3$jday2[1]]
-    if(length(slog3$SST[slog3$jday==gr3$jday2[1]])==0) gr3$tag.sst <- NA
+    if(length(sensor$SST[sensor$jday==gr3$jday2[1]])>0)  gr3$tag.sst <- sensor$SST[sensor$jday==gr3$jday2[1]]
+    if(length(sensor$SST[sensor$jday==gr3$jday2[1]])==0) gr3$tag.sst <- NA
     gr3$sat.sst[gr3$sat.sst==c(-10)]      <- NA
     gr3$sat.sst.err[is.na(gr3$sat.sst)]   <- NA
     gr3$sst.diff     <- gr3$sat.sst-gr3$tag.sst
@@ -687,11 +686,11 @@ proj4string(newg) <- CRS(proj.latlon)
 end.time   <- Sys.time()
 time.taken <- end.time - start.time
 
-list.all            <- list(newt2,newg,ho3,ho2,sp6,slog3,time.taken)
+list.all            <- list(newt2,newg,ho3,trn,sp6,sensor,time.taken)
 names(list.all)     <- c('bootstrapped data (newt2)','median position (newg)',
-                         'raw data (ho3)','raw data prepared (ho2)',
+                         'raw data (ho3)','raw data prepared (trn)',
                          'all possible particles (sp6)',
-                         'daily sensor (slog3)','time.taken') 
+                         'daily sensor (sensor)','time.taken') 
 
 return(list.all)
 }

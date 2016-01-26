@@ -14,7 +14,16 @@
 #' @param date2 last date in file to extract, must be Date class
 #' @param use.landmask use land mask
 #' @param extract.value which data to extract: "sst" - SST, "err" - SST error, "icec" - sea ice concentration
-#' @return A data.frame for further use in GeoLight or ProMM
+#' @return A 3-dimensional array with latitudes in rows, longitudes in columns, and dates along the 3rd dimension. The value [1,1,1] is the northernmost, westernmost lat/long location on the 1st date. The value [1,1,2] is the 2nd date at the same lat/long location (if more than 1 date is requested).
+#' @return To extract lat/lon/date values from the output array, use the dimnames() function:
+#' @return lats = as.numeric(dimnames(sst2)$Lat)
+#' @return longs = as.numeric(dimnames(sst2)$Long)
+#' @return dates = as.Date(dimnames(sst2)$Date)
+#' @return  
+#' @return NetCDF files should be downloaded from the links on:
+#' @return http://www.esrl.noaa.gov/psd/data/gridded/data.noaa.oisst.v2.highres.html
+#' @return In addition to the temperature data files, also download a copy of the landmask file lsmask.oisst.v2.nc from the same page. Inside the NetCDF files, data are available on a 0.25 degree latitude x 0.25 degree longitude global grid (720x1440 cells) From -89.875N to 89.875N, 0.125E to 359.875E. Locations are at the CENTER of a grid cell.
+#' @return modified after Luke Miller Nov 25, 2014; https://github.com/millerlp/Misc_R_scripts/blob/master/NOAA_OISST_ncdf4.R
 #' @export
 
 
@@ -24,44 +33,7 @@
 load.NOAA.OISST.V2 = function(fname,lsmask,lonW,lonE,latS,latN, 
                              date1, date2,use.landmask=F,
                              extract.value='sst'){
-  # This function takes 1-year-long NetCDF files of daily SST from the
-  # ftp://ftp.cdc.noaa.gov/Datasets/noaa.oisst.v2.highres/ directory
-  # where filenames for daily mean SST files are named with the scheme
-  # sst.day.mean.YEAR.v2.nc
-  # _________________________________________________________________
-  # Inputs
-  # fname: full path to NetCDF data file
-  # lsmask: full path to land-sea mask NetCDF file
-  # lonW: western-most longitude of search area, must be smaller than lonE
-  # lonE: eastern-most longitude of search area, must be larger than lon1
-  # latS: southern-most latitude of search area, must be smaller than latN
-  # latN: northern-most latitude of search area, must be larger than latS
-  # date1: first date in file to extract, must be Date class
-  # date2: last date in file to extract, must be Date class
-  # lonE, latN, date2 are optional.
-  # Output
-  # A 3-dimensional array with latitudes in rows, longitudes in columns, and
-  # dates along the 3rd dimension. The value [1,1,1] is the northernmost,
-  # westernmost lat/long location on the 1st date. The value [1,1,2] is the
-  # 2nd date at the same lat/long location (if more than 1 date is requested).
-  # To extract lat/lon/date values from the output array, use the
-  # dimnames() function:
-  # lats = as.numeric(dimnames(sst2)$Lat)
-  # longs = as.numeric(dimnames(sst2)$Long)
-  # dates = as.Date(dimnames(sst2)$Date)
-  # ________________________________________________________
-  # NetCDF files should be downloaded from the links on:
-  # http://www.esrl.noaa.gov/psd/data/gridded/data.noaa.oisst.v2.highres.html
-  # In addition to the temperature data files, also download a copy of the
-  # landmask file lsmask.oisst.v2.nc from the same page.
-  # Inside the NetCDF files, data are available on a
-  # 0.25 degree latitude x 0.25 degree longitude global grid (720x1440 cells)
-  # From -89.875N to 89.875N, 0.125E to 359.875E.
-  # Locations are at the CENTER of a grid cell.
-  # Southern Hemisphere latitudes must be given as NEGATIVE degrees NORTH.
-  # For example, the Tropic of Capricorn is at roughly -23.43 degrees north.
-  # All longitudes must be given as positive degrees EAST of the prime
-  # meridian. For example, Los Angeles is at roughly 241.77 degrees east.
+  
   # Generate set of grid cell latitudes (center of cell) from south to north
   lats = seq(-89.875,89.875,0.25)
   # Generate set of grid cell longitudes (center of cell)
