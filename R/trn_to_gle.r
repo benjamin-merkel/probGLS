@@ -3,6 +3,7 @@
 #' transform biotrack or BAS .trn files into a data frame
 #' @param trnfile the trn file to be transformed
 #' @return A data.frame for further use in GeoLight or ProMM
+#' @return modified after trnTrans() in GeoLight by Tamara Emmenegger
 #' @export
 
 trn_to_dataframe<-function(trnfile){
@@ -25,13 +26,10 @@ trn_to_dataframe<-function(trnfile){
     if(as.character(data$V2[i])=="Sunset"  & as.character(data$V2[i+1])=="Sunrise") type[i] <- 2
     
     ConvInt[i] <- 9
-    if(data$V3[i+1]==4) ConvInt[i] <- 4
-    if(data$V3[i]  ==4) ConvInt[i] <- 4
-    if(data$V3[i+1]==3) ConvInt[i] <- 3
-    if(data$V3[i]  ==3) ConvInt[i] <- 3
-    if(data$V3[i+1]==2) ConvInt[i] <- 2
-    if(data$V3[i]  ==2) ConvInt[i] <- 2
-    
+    for(k in 8:1){
+      if(data$V3[i+1]==k) ConvInt[i] <- k
+      if(data$V3[i]  ==k) ConvInt[i] <- k
+    }
   }
   output <- data.frame(tFirst=as.POSIXlt(tFirst,origin="1970-01-01",tz="UTC"),tSecond=as.POSIXlt(tSecond,origin="1970-01-01",tz="UTC"),type=type,ConvInt=ConvInt)
   return(output)

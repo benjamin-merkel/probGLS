@@ -17,7 +17,7 @@
 #' @return A 3-dimensional array with latitudes in rows, longitudes in columns, and dates along the 3rd dimension. The value [1,1,1] is the northernmost, westernmost lat/long location on the 1st date. The value [1,1,2] is the 2nd date at the same lat/long location (if more than 1 date is requested).
 #' @return To extract lat/lon/date values from the output array, use the dimnames() function:
 #' @return lats = as.numeric(dimnames(sst2)$Lat)
-#' @return longs = as.numeric(dimnames(sst2)$Long)
+#' @return lons = as.numeric(dimnames(sst2)$Long)
 #' @return dates = as.Date(dimnames(sst2)$Date)
 #' @return  
 #' @return NetCDF files should be downloaded from the links on:
@@ -26,9 +26,6 @@
 #' @return modified after Luke Miller Nov 25, 2014; https://github.com/millerlp/Misc_R_scripts/blob/master/NOAA_OISST_ncdf4.R
 #' @export
 
-
-
-# taken from the script FUNCTION_load.sst
 
 load.NOAA.OISST.V2 = function(fname,lsmask,lonW,lonE,latS,latN, 
                              date1, date2,use.landmask=F,
