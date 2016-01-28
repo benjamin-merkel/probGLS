@@ -2,16 +2,16 @@
 % Please edit documentation in R/promm.R
 \name{promm}
 \alias{promm}
-\title{probabalistic movement model for geolocation data}
+\title{probabilistic movement model for geolocation data}
 \usage{
 promm(particle.number = 500, bootstrap.number = 50, loess.quartile = NULL,
-  colony = c(0, 0), tagging.date, retrieval.date, twilight.sd = 10,
-  range.sun.elev = c(-7, -1, 0.1), speed.wet = c(20, 0.2, 25),
-  speed.dry = c(20, 0.2, 25), sst.sd = 0.5, max.sst.diff = 3,
+  tagging.location = c(0, 0), tagging.date, retrieval.date,
+  twilight.sd = 10, range.sun.elev = c(-7, -1, 0.1), speed.wet = c(20,
+  0.2, 25), speed.dry = c(20, 0.2, 25), sst.sd = 0.5, max.sst.diff = 3,
   days.around.spring.equinox = c(10, 10), days.around.fall.equinox = c(10,
   10), ice.conc.cutoff = 0.9, boundary.box = c(-90, 70, 0, 90),
   med.black.sea = T, baltic.sea = T, caspian.sea = T,
-  east.west.comp = T, sensor, trn, act,
+  east.west.comp = T, sensor, trn, act, wetdry.resolution = 30,
   NOAA.OI.location = "E:/environmental data/SST/NOAA OI SST V2")
 }
 \arguments{
@@ -19,31 +19,31 @@ promm(particle.number = 500, bootstrap.number = 50, loess.quartile = NULL,
 
 \item{bootstrap.number}{number of iterations}
 
-\item{loess.quartile}{quartiles for loess.filter (GeoLight), if NULL then loess filter is not used}
+\item{loess.quartile}{quartiles for loess.filter (GeoLight), if NULL loess filter is not used}
 
-\item{colony}{colony longitude and latitude}
+\item{tagging.location}{tagging location longitude and latitude}
 
-\item{tagging.date}{deployment data}
+\item{tagging.date}{deployment data as POSIXct or Date object}
 
-\item{retrieval.date}{retrieval date}
+\item{retrieval.date}{retrieval date as POSIXct or Date object}
 
-\item{twilight.sd}{sd around each unsrise or sunset event in min}
+\item{twilight.sd}{standard deviation around each sunrise or sunset event in min}
 
-\item{range.sun.elev}{min and max sun angle in degree, resolution of sun elevation angle}
+\item{range.sun.elev}{min and max of sun elevation angle range in degree, resolution of sun elevation angle range}
 
-\item{speed.wet}{optimal speed, speed sd and max speed allowed if logger is wet in m/s}
+\item{speed.wet}{optimal speed, speed standard deviation and max speed allowed if logger is wet in m/s}
 
-\item{speed.dry}{optimal speed, speed sd and max speed allowed if logger is dry in m/s}
+\item{speed.dry}{optimal speed, speed standard deviation and max speed allowed if logger is dry in m/s}
 
-\item{sst.sd}{SST sd in degree C}
+\item{sst.sd}{SST standard deviation in degree C}
 
 \item{max.sst.diff}{max difference in SST allowed in degree C}
 
-\item{days.around.spring.equinox}{days before the Spring equinox and days after the Spring equinox, the Spring equinox is assumed constant at 20 March}
+\item{days.around.spring.equinox}{days before the Spring equinox and days after the Spring equinox. The Spring equinox is assumed constant at 20 March.}
 
-\item{days.around.fall.equinox}{days before the Fall equinox, days after the Fall equinox, the Fall equinox is assumed constant at 22 September}
+\item{days.around.fall.equinox}{days before the Fall equinox, days after the Fall equinox. The Fall equinox is assumed constant at 22 September.}
 
-\item{ice.conc.cutoff}{min percentage of sea ice in which there are no birds}
+\item{ice.conc.cutoff}{max percentage of sea ice in which the animal is believed to be}
 
 \item{boundary.box}{min lon, max lon, min lat and max lat of extrem boundary where you expect an animal to be}
 
@@ -53,22 +53,22 @@ promm(particle.number = 500, bootstrap.number = 50, loess.quartile = NULL,
 
 \item{caspian.sea}{if T remove caspian sea}
 
-\item{east.west.comp}{if T apply biotrack east west movement compensation}
+\item{east.west.comp}{if T apply biotrack east west movement compensation (Biotrack manual v11 page 31pp.)}
 
-\item{sensor}{sensor data input}
+\item{sensor}{data.frame with daily SST data deduced from tag temperature readings}
 
-\item{trn}{sunrise and sunset data input with the same structure as computed by trn_to_dataframe or ipe_to_dataframe}
+\item{trn}{data.frame containing twilights and at least tFirst, tSecond and type (same structure as computed by trn_to_dataframe or ipe_to_dataframe)}
 
-\item{act}{wet dry data input}
+\item{act}{data.frame containing wet dry data (e.g. .act file from Biotrack loggers or .deg file from migrate tech loggers)}
 
-\item{NOAA.OI.location}{directory location of NOAA OI V2 files as well as land mask file 'lsmask.oisst.v2.nc'}
+\item{NOAA.OI.location}{directory location of NOAA OI V2 NCDF files as well as land mask file 'lsmask.oisst.v2.nc' (downloadable from http://www.esrl.noaa.gov/psd/data/gridded/data.noaa.oisst.v2.highres.html)}
 
-\item{plot.it}{plot each step}
+\item{wetdry}{Structure of wet dry data.if wet dry state is recorded in set intervals chose "switch", if number of seconds stored until change in wet dry state use "count"}
 }
 \value{
-A list of modeling results: [1] all bootstrapped positions, [2] geographic median positions, [3] all possible particles, [4] time taken
+A list with: [1] all bootstrapped positions, [2] geographic median positions, [3] all possible particles, [4] model run time; list items 1 to 3 are returned as SpatialPointsDataframe
 }
 \description{
-modeling stuff
+promm is a simple probabilistic movement model to be used with geolocation data.
 }
 

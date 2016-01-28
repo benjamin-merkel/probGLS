@@ -1,9 +1,7 @@
 #' load NOAA OISST V2
 #' 
-#' This function takes 1-year-long NetCDF files of daily SST from the
+#' This function takes 1-year-long NetCDF files from the
 #' ftp://ftp.cdc.noaa.gov/Datasets/noaa.oisst.v2.highres/ directory
-#' where filenames for daily mean SST files are named with the scheme
-#' sst.day.mean.YEAR.v2.nc
 #' @param fname full path to NetCDF data file
 #' @param lsmask full path to land-sea mask NetCDF file
 #' @param lonW western-most longitude of search area, must be smaller than lonE
@@ -37,26 +35,13 @@ load.NOAA.OISST.V2 = function(fname,lsmask,lonW,lonE,latS,latN,
   lons = seq(0.125,359.875,0.25)
   # Create connection to NetCDF data file
   nc = nc_open(fname)
+  
   lonWindx = which.min(abs(lonW - lons)) #get index of nearest longitude value
-  if (missing(lonE)){
-    # If lonE isn't specified, reused lon1
-    lonE = lonW
-    lonEindx = lon1indx
-    cat("Only 1 longitude specified\n")
-  } else {
-    # Get index of nearest longitude value to lonE
-    lonEindx = which.min(abs(lonE - lons))
-  }
+  lonEindx = which.min(abs(lonE - lons)) # Get index of nearest longitude value to lonE
+  
   latSindx = which.min(abs(latS - lats)) #get index of nearest latitude value
-  if (missing(latN)){
-    # If latN is not specified, reuse latS
-    latN = latS
-    latNindx = latSindx
-    cat("Only 1 latitude specified\n")
-  } else {
-    # Get index of nearest latitude value to latN
-    latNindx = which.min(abs(latN - lats))
-  }
+  latNindx = which.min(abs(latN - lats)) # Get index of nearest latitude value to latN
+  
   # The lon/lat indx values should now correspond to indices in the NetCDF
   # file for the desired grid cell.
   nlon = (lonEindx - lonWindx) + 1 # get number of longitudes to extract
@@ -97,20 +82,9 @@ load.NOAA.OISST.V2 = function(fname,lsmask,lonW,lonE,latS,latN,
   nc_close(nc)
   
   
-  # The output array sstout will be arranged with longitudes in rows,
-  # increasing in an easterly direction as you move down a row (larger
-  # longitude values), and latitudes in columns, increasing in latitude (more
-  # northerly) as you move across columns. The 3rd dimension represents
-  # different dates. This arrangement stems from how the data are set up in
-  # the NetCDF file, so my apologies if it's counterintuitive.
   # If there are missing data in the NetCDF, they should appear as 32767.
   # Replace that value with NA if it occurs anywhere.
   sstout = ifelse(sstout == 32767, NA, sstout)
-  # The NOAA OISST files contain sea surface temperatures for the entire
-  # globe, including on the continents. This clearly isn't right, so they also
-  # supply a land-sea mask file in netCDF format. We use the values (0 or 1)
-  # stored in the mask file to turn all of the continent areas into NA's.
-  # Open the land-sea mask
   
   # Get dimensions of sstout array
   dims = dim(sstout)
@@ -144,9 +118,6 @@ load.NOAA.OISST.V2 = function(fname,lsmask,lonW,lonE,latS,latN,
                                    Date = as.character(seq(ncdates[date1indx],
                                                            ncdates[date2indx],by = 1)))
   }
-  # sstout now has dimension names that show the longitude and latitude of
-  # each point in the array, as well as the date (3rd dimension of the array).
-  ############################################################################
   # Rearrange the output matrix or array so that latitudes run from north to
   # south down the rows, and longitudes run from west to east across columns.
   # Make new output array to hold rearranged data. The dimension names will

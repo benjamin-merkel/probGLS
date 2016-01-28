@@ -1,32 +1,32 @@
-#' probabalistic movement model for geolocation data
+#' probabilistic movement model for geolocation data
 #' 
-#' modeling stuff 
+#' promm is a simple probabilistic movement model to be used with geolocation data.
 #' @param particle.number number of particles for each location cloud used in the model
 #' @param bootstrap.number number of iterations
-#' @param loess.quartile quartiles for loess.filter (GeoLight), if NULL then loess filter is not used
+#' @param loess.quartile quartiles for loess.filter (GeoLight), if NULL loess filter is not used
 #' @param tagging.location tagging location longitude and latitude
-#' @param tagging.date deployment data
-#' @param retrieval.date  retrieval date
-#' @param twilight.sd sd around each unsrise or sunset event in min
-#' @param range.sun.elev min and max sun angle in degree, resolution of sun elevation angle
-#' @param speed.dry optimal speed, speed sd and max speed allowed if logger is dry in m/s
-#' @param speed.wet optimal speed, speed sd and max speed allowed if logger is wet in m/s
-#' @param sst.sd SST sd in degree C
+#' @param tagging.date deployment data as POSIXct or Date object
+#' @param retrieval.date  retrieval date as POSIXct or Date object
+#' @param twilight.sd standard deviation around each sunrise or sunset event in min
+#' @param range.sun.elev min and max of sun elevation angle range in degree, resolution of sun elevation angle range
+#' @param speed.dry optimal speed, speed standard deviation and max speed allowed if logger is dry in m/s
+#' @param speed.wet optimal speed, speed standard deviation and max speed allowed if logger is wet in m/s
+#' @param sst.sd SST standard deviation in degree C
 #' @param max.sst.diff max difference in SST allowed in degree C
-#' @param days.around.spring.equinox days before the Spring equinox and days after the Spring equinox, the Spring equinox is assumed constant at 20 March
-#' @param days.around.fall.equinox days before the Fall equinox, days after the Fall equinox, the Fall equinox is assumed constant at 22 September
-#' @param ice.conc.cutoff min percentage of sea ice in which there are no birds
-#' @param plot.it plot each step
+#' @param days.around.spring.equinox days before the Spring equinox and days after the Spring equinox. The Spring equinox is assumed constant at 20 March.
+#' @param days.around.fall.equinox days before the Fall equinox, days after the Fall equinox. The Fall equinox is assumed constant at 22 September.
+#' @param ice.conc.cutoff max percentage of sea ice in which the animal is believed to be
 #' @param boundary.box min lon, max lon, min lat and max lat of extrem boundary where you expect an animal to be
 #' @param med.black.sea if T remove meditearanian and black sea
 #' @param baltic.sea if T remove baltic sea
 #' @param caspian.sea if T remove caspian sea
-#' @param east.west.comp if T apply biotrack east west movement compensation
-#' @param sensor sensor data input
-#' @param trn sunrise and sunset data input with the same structure as computed by trn_to_dataframe or ipe_to_dataframe
-#' @param act wet dry data input
-#' @param NOAA.OI.location directory location of NOAA OI V2 files as well as land mask file 'lsmask.oisst.v2.nc'
-#' @return A list of modeling results: [1] all bootstrapped positions, [2] geographic median positions, [3] all possible particles, [4] time taken
+#' @param east.west.comp if T apply biotrack east west movement compensation (Biotrack manual v11 page 31pp.)
+#' @param sensor data.frame with daily SST data deduced from tag temperature readings
+#' @param trn data.frame containing twilights and at least tFirst, tSecond and type (same structure as computed by trn_to_dataframe or ipe_to_dataframe)
+#' @param act data.frame containing wet dry data (e.g. .act file from Biotrack loggers or .deg file from migrate tech loggers)
+#' @param wetdry Structure of wet dry data.if wet dry state is recorded in set intervals chose "switch", if number of seconds stored until change in wet dry state use "count"
+#' @param NOAA.OI.location directory location of NOAA OI V2 NCDF files as well as land mask file 'lsmask.oisst.v2.nc' (downloadable from http://www.esrl.noaa.gov/psd/data/gridded/data.noaa.oisst.v2.highres.html)
+#' @return A list with: [1] all bootstrapped positions, [2] geographic median positions, [3] all possible particles, [4] model run time; list items 1 to 3 are returned as SpatialPointsDataframe
 #' @export
 
 
@@ -54,9 +54,18 @@ promm <-  function( particle.number             = 500
                    ,sensor        
                    ,trn     
                    ,act  
+                   ,wetdry.resolution = 30
                    ,NOAA.OI.location            = 'E:/environmental data/SST/NOAA OI SST V2'){
 
 start.time <- Sys.time()
+
+# find land mask file or error ----
+landmask.location <- list.files(path=NOAA.OI.location,pattern="lsmask.oisst.v2.nc",recursive=T)
+if(length(landmask.location)==0){
+  stop(paste('no land mask file found in folder',NOAA.OI.location,sep=' '),call.=F)
+}
+landmask.location <- paste(NOAA.OI.location,landmask.location,sep='/')[1]
+
 
 f = function(x) function(i) sapply(x, `[[`, i)
 
@@ -67,27 +76,10 @@ trn$month     <- as.numeric(strftime(trn$dtime, format = "%m"))
 trn$year      <- as.numeric(strftime(trn$dtime, format = "%Y"))
 trn$jday      <- as.numeric(julian(trn$dtime))
 
-act$dtime     <- as.POSIXct(strptime(act[,1], format = "%d.%m.%Y %H:%M:%S"),tz='UTC')
-#act$dtime     <- as.POSIXct(strptime(act[,1], format = "%d/%m/%Y %H:%M:%S"),tz='UTC')
-act$date      <- as.Date(act$dtime)
-act$time      <- strptime(paste('01.01.2000',substr(act$dtime,12,19),sep=" "), "%d.%m.%Y %H:%M:%S") 
-
-
 # remove all known data -----
 trn    <- trn   [trn$tFirst  >= as.POSIXct(tagging.date) & trn$tSecond  <= as.POSIXct(retrieval.date),]
 act    <- act   [act$dtime   >= as.POSIXct(tagging.date) & act$dtime    <= as.POSIXct(retrieval.date),]
 sensor <- sensor[sensor$date >= as.Date(tagging.date)    & sensor$date  <= as.Date(retrieval.date),]
-
-#wet dry data resolution in sec
-wetdry.resolution <- abs(as.numeric(difftime(act$dtime[1],act$dtime[2],units="sec"))) 
-
-
-# find land mask file or error ----
-landmask.location <- list.files(path=NOAA.OI.location,pattern="lsmask.oisst.v2.nc",recursive=T)
-if(length(landmask.location)==0){
-  stop(paste('no land mask file found in folder',NOAA.OI.location,sep=' '),call.=F)
-}
-landmask.location <- paste(NOAA.OI.location,landmask.location,sep='/')[1]
 
 # define projections-----
 proj.latlon <- "+proj=longlat +datum=WGS84 +no_defs +ellps=WGS84 +towgs84=0,0,0"
@@ -224,15 +216,31 @@ sp6                <- sp6[sp6$loop.step %in% jt$jt[jt$no>=c(particle.number/5)],
 # remove point clouds with maximum lower then min.lat or minimum higher then max.lat----
 rm.lat           <- data.frame(max.lat=tapply(sp6$lat,sp6$loop.step,max))
 rm.lat$loop.step <- rownames(rm.lat)
+
+if(nrow(rm.lat)==0){
+  stop("No data points inside boundary box. increase boundary box")  
+}
+
 rm.lat$rm        <- 1
 rm.lat$rm[rm.lat$max.lat < boundary.box[3]] <- 0
 sp7                  <- sp6[sp6$loop.step %in% rm.lat$loop.step[rm.lat$rm==1],]
 
 rm.lat           <- data.frame(min.lat=tapply(sp7$lat,sp7$loop.step,min))
 rm.lat$loop.step <- rownames(rm.lat)
+
+if(nrow(rm.lat)==0){
+  stop("No data points inside boundary box. increase boundary box")  
+}
+
 rm.lat$rm        <- 1
 rm.lat$rm[rm.lat$min.lat > boundary.box[4]] <- 0
 sp7                  <- sp7[sp7$loop.step %in% rm.lat$loop.step[rm.lat$rm==1],]
+
+# create data frame of all particles computed ----
+all.particles        <- data.frame(sp7)
+all.particles$lon[all.particles$lon>180] <- all.particles$lon[all.particles$lon>180]-360
+coordinates(all.particles) <- cbind(all.particles$lon,all.particles$lat)
+proj4string(all.particles) <- CRS(proj.latlon)
 
 # remove everything on land-----
 landms               <- raster(landmask.location)
@@ -296,10 +304,11 @@ for(ts in unique(grr$step)){
     
     # calculate what fraction of the time the logger was dry  -----        
     fun.time.dry <- function (x) {
-      slo2       <- act[act$dtime >= x$tFirst[1] & act$dtime <= max(gr3$tSecond),]
-      slo2.time  <- abs(as.numeric(difftime(x$tFirst[1],max(gr3$tSecond),units='secs')))
-      sumact     <- (24 - (sum(slo2$wets0.20)*wetdry.resolution)/slo2.time)/24
-      
+      slo2       <- act$wetdry[act$dtime >= min(x$tFirst) & act$dtime <= max(gr3$tSecond)]
+      slo2.time  <- abs(as.numeric(difftime(min(x$tFirst), max(gr3$tSecond), units='secs')))
+      sumact     <- (1 - sum(slo2) * wetdry.resolution / slo2.time)
+      if(sumact > 1) sumact <- 1
+      if(sumact < 0) sumact <- 0
       return(sumact)
     }
     gtime.dry    <- lapply (colt,fun.time.dry)  
@@ -313,16 +322,16 @@ for(ts in unique(grr$step)){
     # calculate speed and time difference-----
     prev.dtime <- lapply(colt,function(x) x$dtime)
     gr2        <- mapply(cbind,gr2,prev.dtime=prev.dtime, SIMPLIFY = FALSE)
-    gspeed     <- lapply(gr2,function(x) x$gdist/abs(as.numeric(difftime(x$dtime,x$prev.dtime,units="secs"))*x$time.dry))
+    gspeed     <- lapply(gr2,function(x) x$gdist / abs(as.numeric(difftime(x$dtime,x$prev.dtime,units="secs"))))
     time.diff  <- lapply(gr2,function(x) difftime(x$dtime,x$prev.dtime,units="mins"))
     gr2        <- mapply(cbind,gr2,gspeed=gspeed,time.diff=time.diff, SIMPLIFY = FALSE)
     
     # load needed SST, SST error and ice data-----
-    track2       <- data.frame(day=c(as.numeric(as.character(substr(gr3$dtime[1],9,10)))),
-                               month=c(as.numeric(as.character(substr(gr3$dtime[1],6,7)))),
-                               year=c(gr3$year[1]),
-                               lon=c(floor(min(gr3$lon)),ceiling(max(gr3$lon))),
-                               lat=c(floor(min(gr3$lat)),ceiling(max(gr3$lat))))
+    track2       <- data.frame(day   = c(as.numeric(as.character(substr(gr3$dtime[1],9,10)))),
+                               month = c(as.numeric(as.character(substr(gr3$dtime[1],6,7)))),
+                               year  = c(gr3$year[1]),
+                               lon   = c(floor(min(gr3$lon)),ceiling(max(gr3$lon))),
+                               lat   = c(floor(min(gr3$lat)),ceiling(max(gr3$lat))))
     
     fname.sst <- paste(NOAA.OI.location,'/sst.day.mean.' ,year=c(gr3$year[1]),'.v2.nc',sep='')
     fname.err <- paste(NOAA.OI.location,'/sst.day.err.'  ,year=c(gr3$year[1]),'.v2.nc',sep='')
@@ -531,14 +540,16 @@ for(ts in unique(grr$step)){
     
     
     # weigh each particle according to speed and SST
-    fun.gsst   <- function(x) dnorm(x$sst.diff, mean = 0, sd = sst.sd+x$sat.sst.err)/max(dnorm(0, mean = 0, sd = sst.sd+x$sat.sst.err))
-    fun.gspeed <- function(x) dnorm(x$gspeed,
-                                    mean = c((speed.dry[1]*x$time.dry)+(speed.wet[1]*(1-x$time.dry))),
-                                    sd = c((speed.dry[2]*x$time.dry)+(speed.wet[2]*(1-x$time.dry))))/
-                              max(dnorm(c((speed.dry[1]*x$time.dry)+(speed.wet[1]*(1-x$time.dry))), 
-                                        mean = c((speed.dry[1]*x$time.dry)+(speed.wet[1]*(1-x$time.dry))),
-                                        sd = c((speed.dry[2]*x$time.dry)+(speed.wet[2]*(1-x$time.dry)))))
+    fun.gsst   <- function(x) {   dnorm(x$sst.diff, mean = 0, sd = sst.sd+x$sat.sst.err)/
+                              max(dnorm(0,          mean = 0, sd = sst.sd+x$sat.sst.err))}
     
+    fun.gspeed <- function(x) {      dnorm(x$gspeed,
+                                    mean = c((speed.dry[1]*x$time.dry)+(speed.wet[1]*(1-x$time.dry))),
+                                    sd   = c((speed.dry[2]*x$time.dry)+(speed.wet[2]*(1-x$time.dry))))/
+                                 max(dnorm(c((speed.dry[1]*x$time.dry)+(speed.wet[1]*(1-x$time.dry))), 
+                                    mean = c((speed.dry[1]*x$time.dry)+(speed.wet[1]*(1-x$time.dry))),
+                                    sd   = c((speed.dry[2]*x$time.dry)+(speed.wet[2]*(1-x$time.dry)))))}
+   
     
     wsst   <- lapply(gr2,fun.gsst)
     wspeed <- lapply(gr2,fun.gspeed)
@@ -639,12 +650,12 @@ newt2$month        <- as.numeric(strftime(newt2$dtime,'%m'))
 
 # calculate geographic median for each bootstrap cloud----
 for(i in unique(newt2$step)){
-  sf <- data.frame(spDists(newt2[newt2$step==i,1:2],longlat=T),ncol=length(newt2$step[newt2$step==i]))
-  sa <- data.frame(sum.dist=rowMeans(sf),bot=seq(1,length(newt2$step[newt2$step==i]),1))
-  gmp <- newt2[newt2$step==i,][sa$sum.dist==min(sa$sum.dist),]
-  gmp$median.sat.sst <- median(newt2$sat.sst[newt2$step==i])
+  sf                  <- data.frame(spDists(newt2[newt2$step==i,1:2],longlat=T),ncol=length(newt2$step[newt2$step==i]))
+  sa                  <- data.frame(sum.dist=rowMeans(sf),bot=seq(1,length(newt2$step[newt2$step==i]),1))
+  gmp                 <- newt2[newt2$step==i,] [sa$sum.dist==min(sa$sum.dist),] [1,]
+  gmp$median.sat.sst  <- median(newt2$sat.sst[newt2$step==i])
   gmp$median.sun.elev <- median(newt2$sun.elev[newt2$step==i])
-  gmp$median.wrel <- median(newt2$wrel[newt2$step==i])
+  gmp$median.wrel     <- median(newt2$wrel[newt2$step==i])
   
   if(i == unique(newt2$step)[1]) newg <- gmp else newg <- rbind(newg,gmp)
 }
@@ -652,8 +663,8 @@ for(i in unique(newt2$step)){
 end.time   <- Sys.time()
 time.taken <- end.time - start.time
 
-list.all            <- list(newt2,newg,sp6,time.taken)
-names(list.all)     <- c('bootstrapped data','median position','all possible particles','time taken') 
+list.all            <- list(newt2,newg,all.particles,time.taken)
+names(list.all)     <- c('bootstrapped data','median position','all possible particles','model run time') 
 
 return(list.all)
 }

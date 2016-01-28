@@ -50,9 +50,7 @@ In addition to the temperature data files, also download a copy of the landmask 
 modified after Luke Miller Nov 25, 2014; https://github.com/millerlp/Misc_R_scripts/blob/master/NOAA_OISST_ncdf4.R
 }
 \description{
-This function takes 1-year-long NetCDF files of daily SST from the
+This function takes 1-year-long NetCDF files from the
 ftp://ftp.cdc.noaa.gov/Datasets/noaa.oisst.v2.highres/ directory
-where filenames for daily mean SST files are named with the scheme
-sst.day.mean.YEAR.v2.nc
 }
 
