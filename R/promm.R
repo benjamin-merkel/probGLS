@@ -3,15 +3,14 @@
 #' modeling stuff 
 #' @param particle.number number of particles for each location cloud used in the model
 #' @param bootstrap.number number of iterations
-#' @param loess.quartile quartiles for loess.filter (Geolight), if NULL then loess filter is not used
-#' @param colony colony longitude and latitude
+#' @param loess.quartile quartiles for loess.filter (GeoLight), if NULL then loess filter is not used
+#' @param tagging.location tagging location longitude and latitude
 #' @param tagging.date deployment data
 #' @param retrieval.date  retrieval date
 #' @param twilight.sd sd around each unsrise or sunset event in min
 #' @param range.sun.elev min and max sun angle in degree, resolution of sun elevation angle
-#' @param optimal.speed optimal speed of the animal in m/s
-#' @param speed.sd speed sd in m/s
-#' @param max.speed.allowed maximum speed allowed in m/s
+#' @param speed.dry optimal speed, speed sd and max speed allowed if logger is dry in m/s
+#' @param speed.wet optimal speed, speed sd and max speed allowed if logger is wet in m/s
 #' @param sst.sd SST sd in degree C
 #' @param max.sst.diff max difference in SST allowed in degree C
 #' @param days.around.spring.equinox days before the Spring equinox and days after the Spring equinox, the Spring equinox is assumed constant at 20 March
@@ -33,57 +32,55 @@
 
 
 promm <-  function( particle.number             = 500
-                   ,bootstrap.number            = 100
+                   ,bootstrap.number            = 50
                    ,loess.quartile              = NULL 
-                   ,colony                      = c(0,0)
-                   ,tagging.date                = as.POSIXct("2014-06-22")
-                   ,retrieval.date              = as.POSIXct("2015-07-05")
+                   ,tagging.location                      = c(0,0)
+                   ,tagging.date     
+                   ,retrieval.date   
                    ,twilight.sd                 = 10         
                    ,range.sun.elev              = c(-7,-1,0.1)
                    ,speed.wet                   = c(20,0.2,25)
                    ,speed.dry                   = c(20,0.2,25)
-                   ,optimal.speed               = 20      
-                   ,speed.sd                    = 0.2      
-                   ,max.speed.allowed           = 25          
                    ,sst.sd                      = 0.5       
                    ,max.sst.diff                = 3          
-                   ,days.around.spring.equinox  = c(5,5)   
-                   ,days.around.fall.equinox    = c(5,5) 
+                   ,days.around.spring.equinox  = c(10,10)   
+                   ,days.around.fall.equinox    = c(10,10) 
                    ,ice.conc.cutoff             = 0.9    
-                   ,boundary.box                = c(-90,70,-55,90)
+                   ,boundary.box                = c(-90,70,0,90)
                    ,med.black.sea               = T        
                    ,baltic.sea                  = T      
                    ,caspian.sea                 = T    
                    ,east.west.comp              = T   
-                   ,sensor                      = sensor[sensor$SST.remove==F,] 
-                   ,trn                         = trn 
-                   ,act                         = act
-                   ,NOAA.OI.location            = 'E:/environmental data/SST/NOAA OI SST V2'       ){
+                   ,sensor        
+                   ,trn     
+                   ,act  
+                   ,NOAA.OI.location            = 'E:/environmental data/SST/NOAA OI SST V2'){
 
-# load libaries ---------
-library(raster)
-library(geosphere)
-  
-library(rgeos)
-library(Imap)
-library(sampSurf)
-library(maptools)
-library(PBSmapping)
-library(rgdal)
-library(GeoLight)
-library(ncdf4)
-library(fields)
-library(plyr)
-library(spatstat)
-
-  
-  
 start.time <- Sys.time()
+
+f = function(x) function(i) sapply(x, `[[`, i)
+
+# add date time julian doy etc -----
+trn$dtime     <- trn$tFirst+as.numeric(difftime(trn$tSecond,trn$tFirst,units='sec'))/2
+trn$doy       <- as.numeric(strftime(trn$dtime, format = "%j"))
+trn$month     <- as.numeric(strftime(trn$dtime, format = "%m"))
+trn$year      <- as.numeric(strftime(trn$dtime, format = "%Y"))
+trn$jday      <- as.numeric(julian(trn$dtime))
+
+act$dtime     <- as.POSIXct(strptime(act[,1], format = "%d.%m.%Y %H:%M:%S"),tz='UTC')
+#act$dtime     <- as.POSIXct(strptime(act[,1], format = "%d/%m/%Y %H:%M:%S"),tz='UTC')
+act$date      <- as.Date(act$dtime)
+act$time      <- strptime(paste('01.01.2000',substr(act$dtime,12,19),sep=" "), "%d.%m.%Y %H:%M:%S") 
+
 
 # remove all known data -----
 trn    <- trn   [trn$tFirst  >= as.POSIXct(tagging.date) & trn$tSecond  <= as.POSIXct(retrieval.date),]
 act    <- act   [act$dtime   >= as.POSIXct(tagging.date) & act$dtime    <= as.POSIXct(retrieval.date),]
 sensor <- sensor[sensor$date >= as.Date(tagging.date)    & sensor$date  <= as.Date(retrieval.date),]
+
+#wet dry data resolution in sec
+wetdry.resolution <- abs(as.numeric(difftime(act$dtime[1],act$dtime[2],units="sec"))) 
+
 
 # find land mask file or error ----
 landmask.location <- list.files(path=NOAA.OI.location,pattern="lsmask.oisst.v2.nc",recursive=T)
@@ -95,12 +92,12 @@ landmask.location <- paste(NOAA.OI.location,landmask.location,sep='/')[1]
 # define projections-----
 proj.latlon <- "+proj=longlat +datum=WGS84 +no_defs +ellps=WGS84 +towgs84=0,0,0"
 
-# create spatial colony object-----
-col              <- as.data.frame(cbind(colony[1],colony[2]))
+# create spatial tagging.location object-----
+col              <- as.data.frame(cbind(tagging.location[1],tagging.location[2]))
 colnames(col)    <- c("lon","lat")
 coordinates(col) <- cbind(col$lon,col$lat)
 proj4string(col) <- proj.latlon
-col$dtime        <- tagging.date
+col$dtime        <- as.POSIXct(tagging.date)
 col$doy          <- NA
 col$jday         <- NA
 col$year         <- NA
@@ -126,17 +123,9 @@ col$wsst         <- NA
 col$wspeed       <- NA
 col$wrel         <- NA
 
-
 # create empty spdf ----
 empty.spdf       <- col
 empty.spdf$wrel  <- 2
-
-
-# weighing of speed and sst----
-max.w.speed <- dnorm(x=optimal.speed,mean=optimal.speed,sd=speed.sd)
-
-# calc minimum time required to travel average GLS error at maximum allowed speed----
-min.time.dry <- 186 / max.speed.allowed/3.6
 
 # remove all twilight outliers----
 if(is.null(loess.quartile)==F){
@@ -178,12 +167,7 @@ ho4     <- data.frame(mapply(rep,ho4,ceiling(particle.number/sun.elev.steps)))
 # make sure every column is in the right format-----
 ho4[,1] <- as.POSIXct(as.numeric(as.character(ho4[,1])),origin="1970-01-01",tz="UTC")
 ho4[,2] <- as.POSIXct(as.numeric(as.character(ho4[,2])),origin="1970-01-01",tz="UTC")
-ho4[,3] <- as.numeric(as.character(ho4[,3]))
 ho4[,4] <- as.POSIXct(as.numeric(as.character(ho4[,4])),origin="1970-01-01",tz="UTC")
-ho4[,5] <- as.numeric(as.character(ho4[,5]))
-ho4[,6] <- as.numeric(as.character(ho4[,6]))
-ho4[,7] <- as.numeric(as.character(ho4[,7]))
-ho4[,8] <- as.numeric(as.character(ho4[,8]))
 
 # add sun elevation angle-----
 for(k in seq(range.sun.elev[1],range.sun.elev[2],range.sun.elev[3])){
@@ -193,11 +177,10 @@ for(k in seq(range.sun.elev[1],range.sun.elev[2],range.sun.elev[3])){
 ho4$sun.elev<- rse2
 
 # vary tFirst and tSecond----
-ho4$tFirst.er  <- 60*rnorm(length(ho4[,1]), mean = 0, sd = twilight.sd)  # in sec
-ho4$tSecond.er <- 60*rnorm(length(ho4[,1]), mean = 0, sd = twilight.sd)  # in sec
+ho4$tFirst.er  <- 60 * rnorm(length(ho4[,1]), mean = 0, sd = twilight.sd)  # in sec
+ho4$tSecond.er <- 60 * rnorm(length(ho4[,1]), mean = 0, sd = twilight.sd)  # in sec
 ho4$tFirst     <- ho4$tFirst  + ho4$tFirst.er
 ho4$tSecond    <- ho4$tSecond + ho4$tSecond.er
-
 
 # calculate coordinates out of twilight times and sun elevation angle; coord----
 new.pos                 <- as.data.frame(coord(ho4,degElevation=ho4$sun.elev,note=F,method='NOAA'))
@@ -212,7 +195,7 @@ spring.equinox <- c((79  - days.around.spring.equinox[1]):(79  + days.around.spr
 fall.equinox   <- c((265 - days.around.fall.equinox[1])  :(265 + days.around.fall.equinox[2]))
 
 # assign random latitudes to equinox periods----
-ho4$lat[ho4$doy %in% c(spring.equinox,fall.equinox)] <- sample(seq(boundary.box[3],boundary.box[4],by=0.001),size=length(ho4$lat[ho4$doy %in% c(spring.equinox,fall.equinox)]),replace=T)
+ho4$lat[ho4$doy %in% c(spring.equinox,fall.equinox)] <- sample(seq(boundary.box[3],boundary.box[4],by=0.0001),size=length(ho4$lat[ho4$doy %in% c(spring.equinox,fall.equinox)]),replace=T)
 
 # remove sun elevation angle during equinox----
 ho4$sun.elev[ho4$doy %in% c(spring.equinox,fall.equinox)] <- NA
@@ -223,8 +206,6 @@ ho4    <- ho4[ho4$lon>boundary.box[1] & ho4$lon<boundary.box[2] & ho4$lat>bounda
 # transform to SpatialPointsdataframe and assign unique step to each particle cloud -----
 sp6                <- ho4[!is.na(ho4$lat),]
 sp6$lon[sp6$lon<0] <- sp6$lon[sp6$lon<0]+360
-coordinates(sp6)   <- cbind(sp6$lon,sp6$lat)
-proj4string(sp6)   <- CRS(proj.latlon)
 sp6$dtime2         <- (sp6$tSecond-sp6$tFirst)/2+sp6$tFirst
 sp6                <- sp6[order(sp6$dtime2),]
 sp6$loop.step      <- paste(floor(as.numeric(julian(sp6$tFirst))),
@@ -255,6 +236,9 @@ sp7                  <- sp7[sp7$loop.step %in% rm.lat$loop.step[rm.lat$rm==1],]
 
 # remove everything on land-----
 landms               <- raster(landmask.location)
+
+coordinates(sp7)   <- cbind(sp7$lon,sp7$lat)
+proj4string(sp7)   <- CRS(proj.latlon)
 sp7$landmask         <- extract(landms,sp7)
 sp7                  <- sp7[sp7$landmask==1,]
 
@@ -289,8 +273,7 @@ grr$dtime        <- as.POSIXct((as.numeric(grr$tSecond)-as.numeric(grr$tFirst))/
 grr$jday2        <- floor(grr$jday)
 grr              <- grr[order(grr$dtime),]
 
-
-# create current location list and start with colony and time of tagging-----
+# create current location list and start with tagging.location and time of tagging-----
 col2             <- col
 col2$dtime       <- as.POSIXct(tagging.date)
 col2$jday        <- as.numeric(julian(col2$dtime))
@@ -313,25 +296,19 @@ for(ts in unique(grr$step)){
     
     # calculate what fraction of the time the logger was dry  -----        
     fun.time.dry <- function (x) {
-      #slo2   <- sensor[sensor$date>=(as.Date(x$dtime)-1) & sensor$date<=(max(as.Date(gr3$dtime))+1),]
-      #sumact <- 1-(mean(slo2$wetdry_ratio)-min.time.dry)/24
-      #if(sumact > 1) sumact <- 1
-      slo2   <- act[act$dtime >= x$tFirst[1] & act$dtime <= max(gr3$tSecond),]
-      slo2.time <- abs(as.numeric(difftime(x$tFirst[1],max(gr3$tSecond),units='secs')))
-      sumact <- (1 - (sum(slo2$wets0.20)*30 - min.time.dry*60*60)/slo2.time)
-      if(sumact > 1) sumact <- 1
+      slo2       <- act[act$dtime >= x$tFirst[1] & act$dtime <= max(gr3$tSecond),]
+      slo2.time  <- abs(as.numeric(difftime(x$tFirst[1],max(gr3$tSecond),units='secs')))
+      sumact     <- (24 - (sum(slo2$wets0.20)*wetdry.resolution)/slo2.time)/24
+      
       return(sumact)
     }
     gtime.dry    <- lapply (colt,fun.time.dry)  
-    
-    
     
     # create list with one data frame for each bootstrap iteration-----
     gr2                     <- vector("list",length=bootstrap.number)
     gr2[1:bootstrap.number] <- gr3
     gr2                     <- lapply(gr2,function(x) data.frame(x))
     gr2                     <- mapply(cbind,gr2,gbear=gbear,gdist=gdist,time.dry=gtime.dry, SIMPLIFY = FALSE)
-    
     
     # calculate speed and time difference-----
     prev.dtime <- lapply(colt,function(x) x$dtime)
@@ -346,7 +323,6 @@ for(ts in unique(grr$step)){
                                year=c(gr3$year[1]),
                                lon=c(floor(min(gr3$lon)),ceiling(max(gr3$lon))),
                                lat=c(floor(min(gr3$lat)),ceiling(max(gr3$lat))))
-    
     
     fname.sst <- paste(NOAA.OI.location,'/sst.day.mean.' ,year=c(gr3$year[1]),'.v2.nc',sep='')
     fname.err <- paste(NOAA.OI.location,'/sst.day.err.'  ,year=c(gr3$year[1]),'.v2.nc',sep='')
@@ -646,7 +622,7 @@ for(ts in unique(grr$step)){
   step.end  <- Sys.time()
   step.time <- step.end - step.start
   
-  cat(paste(as.Date(gr3$dtime)[1],'  -  ',ts," of ",length(unique(grr$step)),' steps  -  ',round(step.time,2),' sec\n',sep=""))  
+  cat(paste(as.Date(gr3$dtime)[1],'  -  ',ts," of ",length(unique(grr$step)),' steps  -  ',round(step.time,2),' sec',sep=""),'\r')  
 }
 
 # remove all empty steps

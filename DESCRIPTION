@@ -1,11 +1,15 @@
 Package: ProMM
-Title: probabalistic movement model for geolocation data
-Version: 0.1
+Title: probabilistic movement model for geolocation data
+Version: 0.1.0
 Author: Benjamin Merkel <benjamin.merkel@npolar.no>
 Maintainer: Benjamin Merkel <benjamin.merkel@npolar.no>
-Description: probabalistic movement model to analyze geolocation data with some
-    side functions
+Description: probabilistic movement model to analyze geolocation data from
+    various logger brands
 Depends:
-    R (>= 3.2.3)
+    R (>= 3.2.3),
+    raster,
+    geosphere,
+    ncdf4,
+    GeoLight
 License: creative commons
 RoxygenNote: 5.0.1

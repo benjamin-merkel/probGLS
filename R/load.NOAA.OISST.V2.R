@@ -12,7 +12,7 @@
 #' @param latN northern-most latitude of search area, must be larger than latS
 #' @param date1 first date in file to extract, must be Date class
 #' @param date2 last date in file to extract, must be Date class
-#' @param use.landmask use land mask
+#' @param use.landmask use land mask TRUE or FALSE
 #' @param extract.value which data to extract: "sst" - SST, "err" - SST error, "icec" - sea ice concentration
 #' @return A 3-dimensional array with latitudes in rows, longitudes in columns, and dates along the 3rd dimension. The value [1,1,1] is the northernmost, westernmost lat/long location on the 1st date. The value [1,1,2] is the 2nd date at the same lat/long location (if more than 1 date is requested).
 #' @return To extract lat/lon/date values from the output array, use the dimnames() function:
@@ -87,11 +87,11 @@ load.NOAA.OISST.V2 = function(fname,lsmask,lonW,lonE,latS,latN,
   }
   ndates = (date2indx - date1indx) + 1 #get number of time steps to extract
   # Define the output array
-  sstout = matrix(data = NA, ncol = nlon, nrow = nlat)
+  sstout = array(data = NA, dim = c(nlon,nlat,ndates))
   # Extract the data from the NetCDF file
-  sstout[,] = ncvar_get(nc, varid = extract.value,
-                         start = c(lonWindx,latSindx),
-                         count = c(nlon,nlat))
+  sstout[,,] = ncvar_get(nc, varid = extract.value,
+                         start = c(lonWindx,latSindx,date1indx),
+                         count = c(nlon,nlat,ndates))
   
   # close SST ncdf
   nc_close(nc)
@@ -111,53 +111,60 @@ load.NOAA.OISST.V2 = function(fname,lsmask,lonW,lonE,latS,latN,
   # supply a land-sea mask file in netCDF format. We use the values (0 or 1)
   # stored in the mask file to turn all of the continent areas into NA's.
   # Open the land-sea mask
+  
+  # Get dimensions of sstout array
+  dims = dim(sstout)
+  
   if(use.landmask==T) {
     
     nc2 = nc_open(lsmask)
     # Create array to hold land-sea mask
-    mask = matrix(data = NA, dim = c(nlon,nlat))
+    mask = array(data = NA, dim = c(nlon,nlat,1))
     # Get land-sea mask values (0 or 1)
-    mask[,] = ncvar_get(nc2, varid = "lsmask",
-                         start = c(lonWindx,latSindx), count = c(nlon,nlat))
+    mask[,,] = ncvar_get(nc2, varid = "lsmask",
+                         start = c(lonWindx,latSindx,1), count = c(nlon,nlat,1))
     
     #close land mask
     nc_close(nc2)
     
-    
     # Replace 0's with NA's
     mask = ifelse(mask == 0,NA,1)
-    # Get dimensions of sstout array
-    dims = dim(sstout)
     
-    sstout[,] = sstout[,] * mask[,] # All masked values become NA
-    
+    for (i in 1:dims[3]) sstout[,,i] = sstout[,,i] * mask[,,1] # All masked values become NA
   }
   
-  # Add dimension names
-  attr(sstout,'dimnames') = list(Long = seq(lons[lonWindx],lons[lonEindx],
-                                            by = 0.25),
-                                 Lat = seq(lats[latSindx],lats[latNindx],
-                                           by = 0.25))
   
+  
+  for (i in 1:dims[3]){
+    # Add dimension names
+    attr(sstout,'dimnames') = list(Long = seq(lons[lonWindx],lons[lonEindx],
+                                              by = 0.25),
+                                   Lat = seq(lats[latSindx],lats[latNindx],
+                                             by = 0.25),
+                                   Date = as.character(seq(ncdates[date1indx],
+                                                           ncdates[date2indx],by = 1)))
+  }
   # sstout now has dimension names that show the longitude and latitude of
   # each point in the array, as well as the date (3rd dimension of the array).
   ############################################################################
   # Rearrange the output matrix or array so that latitudes run from north to
   # south down the rows, and longitudes run from west to east across columns.
-  dims = dim(sstout) # get size of array
   # Make new output array to hold rearranged data. The dimension names will
   # match the newly rearranged latitude and longitude values
-  sst2 = matrix(data = NA, dim = c(dims[2],dims[1]),
+  sst2 = array(data = NA, dim = c(dims[2],dims[1],dims[3]),
                dimnames = list(Lat = rev(seq(lats[latSindx],lats[latNindx],
                                              by = 0.25)),
-                               Long = seq(lons[lonWindx],lons[lonEindx],by = 0.25)))
+                               Long = seq(lons[lonWindx],lons[lonEindx],by = 0.25),
+                               Date = as.character(seq(ncdates[date1indx],
+                                                       ncdates[date2indx],by = 1))))
   # Step through each page of array and rearrange lat/lon values
-   # Extract one day's worth of lat/lon pairs
-    temp = as.matrix(sstout[,])
+  for (i in 1:dims[3]){
+    # Extract one day's worth of lat/lon pairs
+    temp = as.matrix(sstout[,,i])
     temp = t(temp) # transpose lon/lat to lat/lon
     temp = temp[nrow(temp):1,] # reverse row order to reverse latitudes
-    sst2[,] = temp # write data to sst2 array
-  
+    sst2[,,i] = temp # write data to sst2 array
+  }
   ##########################
   sst2 # return sst2 array
   ##########################
