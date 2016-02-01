@@ -1,2 +1,2 @@
 # ProMM
-probabalistic movement model for geolocation data
+probabilistic movement model for geolocation data
