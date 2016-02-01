@@ -67,7 +67,7 @@ promm(particle.number = 2000, bootstrap.number = 50,
 \item{NOAA.OI.location}{directory location of NOAA OI V2 NCDF files as well as land mask file 'lsmask.oisst.v2.nc' (downloadable from http://www.esrl.noaa.gov/psd/data/gridded/data.noaa.oisst.v2.highres.html)}
 }
 \value{
-A list with: [1] all bootstrapped positions, [2] geographic median positions, [3] all possible particles, [4] model run time; list items 1 to 3 are returned as SpatialPointsDataframe
+A list with: [1] all bootstrapped positions, [2] geographic median positions, [3] all possible particles, [4] input parameter, [5] model run time; list items 1 to 3 are returned as SpatialPointsDataframe
 }
 \description{
 promm is a simple probabilistic movement model to be used with geolocation data.

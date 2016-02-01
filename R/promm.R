@@ -26,7 +26,7 @@
 #' @param act data.frame containing wet dry data (e.g. .act file from Biotrack loggers or .deg file from migrate tech loggers)
 #' @param wetdry.resolution sampling rate of conductivity switch in sec (e.g. MK15 & MK3006 sample every 3 sec)
 #' @param NOAA.OI.location directory location of NOAA OI V2 NCDF files as well as land mask file 'lsmask.oisst.v2.nc' (downloadable from http://www.esrl.noaa.gov/psd/data/gridded/data.noaa.oisst.v2.highres.html)
-#' @return A list with: [1] all bootstrapped positions, [2] geographic median positions, [3] all possible particles, [4] model run time; list items 1 to 3 are returned as SpatialPointsDataframe
+#' @return A list with: [1] all bootstrapped positions, [2] geographic median positions, [3] all possible particles, [4] input parameter, [5] model run time; list items 1 to 3 are returned as SpatialPointsDataframe
 #' @export
 
 
@@ -58,6 +58,17 @@ promm <-  function( particle.number             = 2000
                    ,NOAA.OI.location            = 'E:/environmental data/SST/NOAA OI SST V2'){
 
 start.time <- Sys.time()
+
+model.input <- data.frame(parameter=c('particle.number','bootstrap.number','loess.quartile','tagging.location',
+                                     'tagging.date','retrieval.date','twilight.sd','range.sun.elev','speed.wet',
+                                     'speed.dry','sst.sd','max.sst.diff','days.around.spring.equinox',
+                                     'days.around.fall.equinox','ice.conc.cutoff','boundary.box','med.black.sea',
+                                     'baltic.sea','caspian.sea','east.west.comp','wetdry.resolution','NOAA.OI.location'),
+                          chosen=c(paste(particle.number,collapse=" "),paste(bootstrap.number,collapse=" "),paste(loess.quartile,collapse=" "),paste(tagging.location,collapse=" "),
+                                   paste(tagging.date,collapse=" "),paste(retrieval.date,collapse=" "),paste(twilight.sd,collapse=" "),paste(range.sun.elev,collapse=" "),paste(speed.wet,collapse=" "),
+                                   paste(speed.dry,collapse=" "),paste(sst.sd,collapse=" "),paste(max.sst.diff,collapse=" "),paste(days.around.spring.equinox,collapse=" "),
+                                   paste(days.around.fall.equinox,collapse=" "),paste(ice.conc.cutoff,collapse=" "),paste(boundary.box,collapse=" "),paste(med.black.sea,collapse=" "),
+                                   paste(baltic.sea,collapse=" "),paste(caspian.sea,collapse=" "),paste(east.west.comp,collapse=" "),paste(wetdry.resolution,collapse=" "),paste(NOAA.OI.location,collapse=" ")))
 
 # find land mask file or error ----
 landmask.location <- list.files(path=NOAA.OI.location,pattern="lsmask.oisst.v2.nc",recursive=T)
@@ -654,8 +665,8 @@ for(i in unique(newt2$step)){
 end.time   <- Sys.time()
 time.taken <- end.time - start.time
 
-list.all            <- list(newt2,newg,all.particles,time.taken)
-names(list.all)     <- c('bootstrapped data','median position','all possible particles','model run time') 
+list.all            <- list(newt2,newg,all.particles,model.input,time.taken)
+names(list.all)     <- c('bootstrapped data','median position','all possible particles','input parameter','model run time') 
 
 return(list.all)
 }
