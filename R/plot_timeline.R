@@ -22,7 +22,6 @@ plot_timeline <- function(pr,degElevation=-3){
     return(polyf)
   }
   
-  opar <- par()      # make a copy of current settings
   par(mfrow=c(3,1),mar=c(0,4,0,0))
   plot(pr[[1]]$jday,pr[[1]]$lat,col='white',lwd=1,type="p",xaxt="n",ylab="Latitude")
   polygon(poly.frame(pr[[1]]$jday,pr[[1]]$lat,0.95,0.05),col=rgb(1,0,0,alpha=0.5) ,border=NA)
@@ -40,6 +39,6 @@ plot_timeline <- function(pr,degElevation=-3){
   points(pr[[2]]$jday,pr[[2]]$median.sat.sst,type='o',lwd=1,col="darkred")
   points(pr[[2]]$jday,pr[[2]]$tag.sst,type='o',lwd=1)
   
-  par(opar) 
+  par(mfrow=c(1,1),mar=c(4,4,2,2)) 
   
 }
