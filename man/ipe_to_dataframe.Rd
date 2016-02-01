@@ -15,6 +15,6 @@ A data.frame for further use in GeoLight or ProMM
 modified after trnTrans() in GeoLight by Tamara Emmenegger
 }
 \description{
-transform migrate tech .ipe files into a data frame
+transform migrate tech .ipe files into a data frame with tFirst, tSecond and type
 }
 

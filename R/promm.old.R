@@ -31,7 +31,7 @@
 
 
 
-promm <-  function( particle.number             = 2000
+promm.old<-function(particle.number             = 500
                    ,bootstrap.number            = 50
                    ,loess.quartile              = NULL 
                    ,tagging.location            = c(0,0)
@@ -78,6 +78,8 @@ trn$jday      <- as.numeric(julian(trn$dtime))
 
 # remove all known data -----
 trn    <- trn   [trn$tFirst  >= as.POSIXct(tagging.date) & trn$tSecond  <= as.POSIXct(retrieval.date),]
+act    <- act   [act$dtime   >= as.POSIXct(tagging.date) & act$dtime    <= as.POSIXct(retrieval.date),]
+sensor <- sensor[sensor$date >= as.Date(tagging.date)    & sensor$date  <= as.Date(retrieval.date),]
 
 # define projections-----
 proj.latlon <- "+proj=longlat +datum=WGS84 +no_defs +ellps=WGS84 +towgs84=0,0,0"
@@ -87,13 +89,13 @@ col              <- as.data.frame(cbind(tagging.location[1],tagging.location[2])
 colnames(col)    <- c("lon","lat")
 coordinates(col) <- cbind(col$lon,col$lat)
 proj4string(col) <- proj.latlon
-col$dtime        <- as.POSIXct(tagging.date,tz="UTC")
+col$dtime        <- as.POSIXct(tagging.date)
 col$doy          <- NA
 col$jday         <- NA
 col$year         <- NA
 col$type         <- NA
-col$tFirst       <- as.POSIXct(tagging.date,tz="UTC")
-col$tSecond      <- as.POSIXct(tagging.date,tz="UTC")
+col$tFirst       <- as.POSIXct(tagging.date)
+col$tSecond      <- as.POSIXct(tagging.date)
 col$tFirst.err   <- NA
 col$tSecond.err  <- NA
 col$sun.elev     <- NA
@@ -145,10 +147,14 @@ if(east.west.comp==T){
 }
 
 # subset data to columns of interest-----
-ho3     <- data.frame(subset(trn,select=c(tFirst,tSecond,type,dtime,doy,jday,year,month)))
+ho3       <- data.frame(subset(trn,select=c(tFirst,tSecond,type,dtime,doy,jday,year,month)))
+
+# duplicate data frame number of sun.elev range-----
+sun.elev.steps <- length(seq(range.sun.elev[1],range.sun.elev[2],range.sun.elev[3]))  
+ho4            <- data.frame(mapply(rep,ho3,sun.elev.steps))
 
 # duplicate data frame number of particle times----
-ho4     <- data.frame(mapply(rep,ho3,particle.number))
+ho4     <- data.frame(mapply(rep,ho4,ceiling(particle.number/sun.elev.steps)))
 
 # make sure every column is in the right format-----
 ho4[,1] <- as.POSIXct(as.numeric(as.character(ho4[,1])),origin="1970-01-01",tz="UTC")
@@ -156,8 +162,11 @@ ho4[,2] <- as.POSIXct(as.numeric(as.character(ho4[,2])),origin="1970-01-01",tz="
 ho4[,4] <- as.POSIXct(as.numeric(as.character(ho4[,4])),origin="1970-01-01",tz="UTC")
 
 # add sun elevation angle-----
-sun.elev.steps <- seq(range.sun.elev[1],range.sun.elev[2],range.sun.elev[3])
-ho4$sun.elev   <- sample(sun.elev.steps,size=nrow(ho4),replace=T)
+for(k in seq(range.sun.elev[1],range.sun.elev[2],range.sun.elev[3])){
+  rse       <- rep(k,length=(ceiling(particle.number/sun.elev.steps)*length(ho3[,1])))
+  if(k == range.sun.elev[1]) rse2<-rse else rse2<-c(rse2,rse)
+}
+ho4$sun.elev<- rse2
 
 # vary tFirst and tSecond----
 ho4$tFirst.er  <- 60 * rnorm(length(ho4[,1]), mean = 0, sd = twilight.sd)  # in sec

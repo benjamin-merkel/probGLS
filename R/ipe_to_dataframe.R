@@ -1,6 +1,6 @@
 #' transform .ipe file into data frame
 #' 
-#' transform migrate tech .ipe files into a data frame
+#' transform migrate tech .ipe files into a data frame with tFirst, tSecond and type
 #' @param ipefile the ipe file to be transformed
 #' @return A data.frame for further use in GeoLight or ProMM
 #' @return modified after trnTrans() in GeoLight by Tamara Emmenegger

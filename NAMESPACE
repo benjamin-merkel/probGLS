@@ -2,5 +2,7 @@
 
 export(ipe_to_dataframe)
 export(load.NOAA.OISST.V2)
+export(lotek_to_dataframe)
 export(promm)
+export(promm.old)
 export(trn_to_dataframe)

@@ -1,6 +1,6 @@
 #' transform .trn file into data frame
 #' 
-#' transform biotrack or BAS .trn files into a data frame
+#' transform biotrack or BAS .trn files into a data frame with tFirst, tSecond and type
 #' @param trnfile the trn file to be transformed
 #' @return A data.frame for further use in GeoLight or ProMM
 #' @return modified after trnTrans() in GeoLight by Tamara Emmenegger
