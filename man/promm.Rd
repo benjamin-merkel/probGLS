@@ -9,7 +9,7 @@ promm(particle.number = 2000, bootstrap.number = 50,
   retrieval.date, twilight.sd = 10, range.sun.elev = c(-7, -1, 0.1),
   speed.wet = c(20, 0.2, 25), speed.dry = c(20, 0.2, 25), sst.sd = 0.5,
   max.sst.diff = 3, days.around.spring.equinox = c(10, 10),
-  days.around.fall.equinox = c(10, 10), ice.conc.cutoff = 0.9,
+  days.around.fall.equinox = c(10, 10), ice.conc.cutoff = 1,
   boundary.box = c(-90, 70, 0, 90), med.black.sea = T, baltic.sea = T,
   caspian.sea = T, east.west.comp = T, sensor, trn, act,
   wetdry.resolution = 30,
@@ -56,7 +56,7 @@ promm(particle.number = 2000, bootstrap.number = 50,
 
 \item{east.west.comp}{if T apply biotrack east west movement compensation (Biotrack manual v11 page 31pp.)}
 
-\item{sensor}{data.frame with daily SST data deduced from tag temperature readings}
+\item{sensor}{data.frame with daily SST data deduced from tag temperature readings (sst_deduction ouput)}
 
 \item{trn}{data.frame containing twilights and at least tFirst, tSecond and type (same as computed by trn_to_dataframe, ipe_to_dataframe or lotek_to_dataframe)}
 

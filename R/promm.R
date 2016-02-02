@@ -493,7 +493,7 @@ for(ts in unique(grr$step)){
     
     # remove sst values in pixels with more than ice.conc.cutoff----
     # except for 2012-8-11 to 2012-8-16 as ice data is fucked up in this period
-    if(gr3$date[1]<"2012-08-11" | gr3$date[1]>"2012-08-16") sstdata$V1[sstdata$ice > ice.conc.cutoff] <-NA
+    if(gr3$date[1]<as.Date("2012-08-11") | gr3$date[1]>as.Date("2012-08-16")) sstdata$V1[sstdata$ice > ice.conc.cutoff] <-NA
     
     # rasterize sat data-----
     min.lat.sst   <- floor(min(sstdata$Lat))

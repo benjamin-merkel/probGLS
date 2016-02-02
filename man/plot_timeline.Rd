@@ -4,12 +4,12 @@
 \alias{plot_timeline}
 \title{plot timeline of model output}
 \usage{
-plot_timeline(pr, degElevation = -3)
+plot_timeline(pr, degElevation = NULL)
 }
 \arguments{
 \item{pr}{promm model output}
 
-\item{degElevation}{sun elevation angle for comparison threshold method}
+\item{degElevation}{sun elevation angle for comparison threshold method, if NULL no threshold positions are plotted}
 }
 \description{
 plot timeline of model output

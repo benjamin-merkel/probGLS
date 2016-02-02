@@ -47,7 +47,7 @@ http://www.esrl.noaa.gov/psd/data/gridded/data.noaa.oisst.v2.highres.html
 
 In addition to the temperature data files, also download a copy of the landmask file lsmask.oisst.v2.nc from the same page. Inside the NetCDF files, data are available on a 0.25 degree latitude x 0.25 degree longitude global grid (720x1440 cells) From -89.875N to 89.875N, 0.125E to 359.875E. Locations are at the CENTER of a grid cell.
 
-modified after Luke Miller Nov 25, 2014; https://github.com/millerlp/Misc_R_scripts/blob/master/NOAA_OISST_ncdf4.R
+modified after Luke Miller accessed Nov 25, 2014; https://github.com/millerlp/Misc_R_scripts/blob/master/NOAA_OISST_ncdf4.R
 }
 \description{
 This function takes 1-year-long NetCDF files from the

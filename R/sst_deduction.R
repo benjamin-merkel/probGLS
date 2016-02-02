@@ -4,6 +4,7 @@
 #' @param datetime date time object as POSIXct in UTC
 #' @param temp temperature readings 
 #' @param temp.range min and max of temperature range
+#' @details only works with temp data that are recorded while the logger is submerged in seawater
 #' @export
 
 
@@ -34,6 +35,6 @@ sst_deduction <- function(datetime,temp,temp.range=c(-2,30)){
   
   temp$SST.remove[temp$sst.diff2>12] <- T
   
-  output <- subset(temp,select=c(dtime,doy,month,year,jday,SST,SST.remove))
+  output <- subset(temp,select=c(date,doy,month,year,jday,SST,SST.remove))
   
 }

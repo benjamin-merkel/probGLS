@@ -16,4 +16,7 @@ sst_deduction(datetime, temp, temp.range = c(-2, 30))
 \description{
 SST deduction from logger temperature reading
 }
+\details{
+only works with temp data that are recorded while the logger is submerged in seawater
+}
 
