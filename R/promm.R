@@ -21,7 +21,7 @@
 #' @param baltic.sea if T remove baltic sea
 #' @param caspian.sea if T remove caspian sea
 #' @param east.west.comp if T apply biotrack east west movement compensation (Biotrack manual v11 page 31pp.)
-#' @param sensor data.frame with daily SST data deduced from tag temperature readings
+#' @param sensor data.frame with daily SST data deduced from tag temperature readings (sst_deduction ouput)
 #' @param trn data.frame containing twilights and at least tFirst, tSecond and type (same as computed by trn_to_dataframe, ipe_to_dataframe or lotek_to_dataframe)
 #' @param act data.frame containing wet dry data (e.g. .act file from Biotrack loggers or .deg file from migrate tech loggers)
 #' @param wetdry.resolution sampling rate of conductivity switch in sec (e.g. MK15 & MK3006 sample every 3 sec)
@@ -45,7 +45,7 @@ promm <-  function( particle.number             = 2000
                    ,max.sst.diff                = 3          
                    ,days.around.spring.equinox  = c(10,10)   
                    ,days.around.fall.equinox    = c(10,10) 
-                   ,ice.conc.cutoff             = 0.9    
+                   ,ice.conc.cutoff             = 1
                    ,boundary.box                = c(-90,70,0,90)
                    ,med.black.sea               = T        
                    ,baltic.sea                  = T      
@@ -493,7 +493,7 @@ for(ts in unique(grr$step)){
     
     # remove sst values in pixels with more than ice.conc.cutoff----
     # except for 2012-8-11 to 2012-8-16 as ice data is fucked up in this period
-    if(gr3$date[1]<"2012-08-11" | gr3$date[1]>"2012-08-16") sstdata$V1[sstdata$ice>=ice.conc.cutoff] <-NA
+    if(gr3$date[1]<"2012-08-11" | gr3$date[1]>"2012-08-16") sstdata$V1[sstdata$ice > ice.conc.cutoff] <-NA
     
     # rasterize sat data-----
     min.lat.sst   <- floor(min(sstdata$Lat))
