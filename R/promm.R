@@ -3,7 +3,7 @@
 #' promm is a simple probabilistic movement model to be used with geolocation data.
 #' @param particle.number number of particles for each location cloud used in the model
 #' @param bootstrap.number number of iterations
-#' @param loess.quartile quartiles for loess.filter (GeoLight), if NULL loess filter is not used
+#' @param loess.quartile quartiles for loessFilter (GeoLight), if NULL loess filter is not used
 #' @param tagging.location tagging location longitude and latitude
 #' @param tagging.date deployment data as POSIXct or Date object
 #' @param retrieval.date  retrieval date as POSIXct or Date object

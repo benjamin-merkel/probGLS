@@ -20,7 +20,7 @@ promm(particle.number = 2000, bootstrap.number = 50,
 
 \item{bootstrap.number}{number of iterations}
 
-\item{loess.quartile}{quartiles for loess.filter (GeoLight), if NULL loess filter is not used}
+\item{loess.quartile}{quartiles for loessFilter (GeoLight), if NULL loess filter is not used}
 
 \item{tagging.location}{tagging location longitude and latitude}
 
