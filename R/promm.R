@@ -559,6 +559,7 @@ for(ts in unique(grr$step)){
     gr2    <- lapply(gr2, function(x) {x$wspeed[x$gspeed<= c(speed.dry[1]*x$time.dry+speed.wet[1]*(1-x$time.dry))]<-1 
                                        x$wspeed[x$gspeed< 0]<-0
                                        x$wspeed[x$gspeed>  c(speed.dry[3]*x$time.dry+speed.wet[3]*(1-x$time.dry))]<-0 
+                                       x$wspeed[x$sat.ice>ice.conc.cutoff] <-0 
                                        x$wsst  [x$sst.diff>  max.sst.diff ]<-0 
                                        x$wsst  [x$sst.diff<(-max.sst.diff)]<-0 
                                        return(x)})
