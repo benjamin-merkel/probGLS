@@ -48,7 +48,7 @@ promm(particle.number = 2000, bootstrap.number = 50,
 
 \item{boundary.box}{min lon, max lon, min lat and max lat of extrem boundary where you expect an animal to be}
 
-\item{med.black.sea}{if T remove meditearanian and black sea}
+\item{med.black.sea}{if T remove mediterranean and black sea}
 
 \item{baltic.sea}{if T remove baltic sea}
 
@@ -71,5 +71,8 @@ A list with: [1] all bootstrapped positions, [2] geographic median positions, [3
 }
 \description{
 promm is a simple probabilistic movement model to be used with geolocation data.
+}
+\details{
+Many weighting parameters can be used some others (which are not yet implemented) are: surface air temperature and topography
 }
 

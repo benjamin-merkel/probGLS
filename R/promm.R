@@ -17,7 +17,7 @@
 #' @param days.around.fall.equinox days before the Fall equinox, days after the Fall equinox. The Fall equinox is assumed constant at 22 September.
 #' @param ice.conc.cutoff max percentage of sea ice in which the animal is believed to be
 #' @param boundary.box min lon, max lon, min lat and max lat of extrem boundary where you expect an animal to be
-#' @param med.black.sea if T remove meditearanian and black sea
+#' @param med.black.sea if T remove mediterranean and black sea
 #' @param baltic.sea if T remove baltic sea
 #' @param caspian.sea if T remove caspian sea
 #' @param east.west.comp if T apply biotrack east west movement compensation (Biotrack manual v11 page 31pp.)
@@ -27,6 +27,7 @@
 #' @param wetdry.resolution sampling rate of conductivity switch in sec (e.g. MK15 & MK3006 sample every 3 sec)
 #' @param NOAA.OI.location directory location of NOAA OI V2 NCDF files as well as land mask file 'lsmask.oisst.v2.nc' (downloadable from http://www.esrl.noaa.gov/psd/data/gridded/data.noaa.oisst.v2.highres.html)
 #' @return A list with: [1] all bootstrapped positions, [2] geographic median positions, [3] all possible particles, [4] input parameter, [5] model run time; list items 1 to 3 are returned as SpatialPointsDataframe
+#' @details Many weighting parameters can be used some others (which are not yet implemented) are: surface air temperature and topography
 #' @export
 
 
@@ -493,7 +494,7 @@ for(ts in unique(grr$step)){
     
     # remove sst values in pixels with more than ice.conc.cutoff----
     # except for 2012-8-11 to 2012-8-16 as ice data is fucked up in this period
-    if(gr3$date[1]<as.Date("2012-08-11") | gr3$date[1]>as.Date("2012-08-16")) sstdata$V1[sstdata$ice > ice.conc.cutoff] <-NA
+    if(as.Date(gr3$date[1])<as.Date("2012-08-11") | as.Date(gr3$date[1])>as.Date("2012-08-16")) sstdata$V1[sstdata$ice > ice.conc.cutoff] <-NA
     
     # rasterize sat data-----
     min.lat.sst   <- floor(min(sstdata$Lat))
@@ -559,7 +560,7 @@ for(ts in unique(grr$step)){
     gr2    <- lapply(gr2, function(x) {x$wspeed[x$gspeed<= c(speed.dry[1]*x$time.dry+speed.wet[1]*(1-x$time.dry))]<-1 
                                        x$wspeed[x$gspeed< 0]<-0
                                        x$wspeed[x$gspeed>  c(speed.dry[3]*x$time.dry+speed.wet[3]*(1-x$time.dry))]<-0 
-                                       x$wspeed[x$sat.ice>ice.conc.cutoff] <-0 
+                                       x$wspeed[x$sat.ice >ice.conc.cutoff]<-0 
                                        x$wsst  [x$sst.diff>  max.sst.diff ]<-0 
                                        x$wsst  [x$sst.diff<(-max.sst.diff)]<-0 
                                        return(x)})
@@ -664,10 +665,12 @@ for(i in unique(newt2$step)){
 }
 
 end.time   <- Sys.time()
-time.taken <- end.time - start.time
+time.taken <- abs(difftime(end.time,start.time,units="mins"))
+
+print(paste('model run time:',as.numeric(time.taken),'min',sep=" "))
 
 list.all            <- list(newt2,newg,all.particles,model.input,time.taken)
-names(list.all)     <- c('bootstrapped data','median position','all possible particles','input parameter','model run time') 
+names(list.all)     <- c('all bootstrapped tracks','most probable track','all possible particles','input parameters','model run time') 
 
 return(list.all)
 }
