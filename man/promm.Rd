@@ -60,7 +60,7 @@ promm(particle.number = 2000, bootstrap.number = 50,
 
 \item{trn}{data.frame containing twilights and at least tFirst, tSecond and type (same as computed by trn_to_dataframe, ipe_to_dataframe or lotek_to_dataframe)}
 
-\item{act}{data.frame containing wet dry data (e.g. .act file from Biotrack loggers or .deg file from migrate tech loggers)}
+\item{act}{data.frame containing wet dry data (e.g. .act file from Biotrack loggers or .deg file from migrate tech loggers), NULL if no wetdry data is available (algorithm will assume that the logger was always dry)}
 
 \item{wetdry.resolution}{sampling rate of conductivity switch in sec (e.g. MK15 & MK3006 sample every 3 sec)}
 

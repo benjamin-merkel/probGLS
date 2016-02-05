@@ -25,6 +25,7 @@ trn_to_dataframe<-function(trnfile){
     if(as.character(data$V2[i])=="Sunrise" & as.character(data$V2[i+1])=="Sunset" ) type[i] <- 1
     if(as.character(data$V2[i])=="Sunset"  & as.character(data$V2[i+1])=="Sunrise") type[i] <- 2
     
+    
     ConvInt[i] <- 9
     for(k in 8:1){
       if(data$V3[i+1]==k) ConvInt[i] <- k
@@ -32,6 +33,10 @@ trn_to_dataframe<-function(trnfile){
     }
   }
   output <- data.frame(tFirst=as.POSIXlt(tFirst,origin="1970-01-01",tz="UTC"),tSecond=as.POSIXlt(tSecond,origin="1970-01-01",tz="UTC"),type=type,ConvInt=ConvInt)
+  
+  # remove twilight sets further apart than 24 hours
+  output$type[as.numeric(abs(difftime(output$tFirst,output$tSecond,"hours")))>=24]<-0
+  output <- output[output$type %in% c(1,2),]
   return(output)
 }
 

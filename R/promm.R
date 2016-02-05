@@ -23,7 +23,7 @@
 #' @param east.west.comp if T apply biotrack east west movement compensation (Biotrack manual v11 page 31pp.)
 #' @param sensor data.frame with daily SST data deduced from tag temperature readings (sst_deduction ouput)
 #' @param trn data.frame containing twilights and at least tFirst, tSecond and type (same as computed by trn_to_dataframe, ipe_to_dataframe or lotek_to_dataframe)
-#' @param act data.frame containing wet dry data (e.g. .act file from Biotrack loggers or .deg file from migrate tech loggers)
+#' @param act data.frame containing wet dry data (e.g. .act file from Biotrack loggers or .deg file from migrate tech loggers), NULL if no wetdry data is available (algorithm will assume that the logger was always dry)
 #' @param wetdry.resolution sampling rate of conductivity switch in sec (e.g. MK15 & MK3006 sample every 3 sec)
 #' @param NOAA.OI.location directory location of NOAA OI V2 NCDF files as well as land mask file 'lsmask.oisst.v2.nc' (downloadable from http://www.esrl.noaa.gov/psd/data/gridded/data.noaa.oisst.v2.highres.html)
 #' @return A list with: [1] all bootstrapped positions, [2] geographic median positions, [3] all possible particles, [4] input parameter, [5] model run time; list items 1 to 3 are returned as SpatialPointsDataframe
@@ -60,6 +60,9 @@ promm <-  function( particle.number             = 2000
 
 start.time <- Sys.time()
 
+
+
+
 model.input <- data.frame(parameter=c('particle.number','bootstrap.number','loess.quartile','tagging.location',
                                      'tagging.date','retrieval.date','twilight.sd','range.sun.elev','speed.wet',
                                      'speed.dry','sst.sd','max.sst.diff','days.around.spring.equinox',
@@ -89,7 +92,8 @@ trn$year      <- as.numeric(strftime(trn$dtime, format = "%Y"))
 trn$jday      <- as.numeric(julian(trn$dtime))
 
 # remove all known data -----
-trn    <- trn   [trn$tFirst  >= as.POSIXct(tagging.date) & trn$tSecond  <= as.POSIXct(retrieval.date),]
+trn    <- trn   [trn$tFirst >= as.POSIXct(tagging.date) & trn$tSecond <= as.POSIXct(retrieval.date),]
+if(nrow(trn)==0)  stop('no data points in trn file between selected tagging and retrieval date',call.=F)
 
 # define projections-----
 proj.latlon <- "+proj=longlat +datum=WGS84 +no_defs +ellps=WGS84 +towgs84=0,0,0"
@@ -267,7 +271,7 @@ if(baltic.sea==T) grr$lon[grr$lon>14     & grr$lon<33.5 & grr$lat>51.4 & grr$lat
 # remove  meditereanian and black sea -----
 if(med.black.sea==T) {
   grr$lon[grr$lon>0 & grr$lon<45 & grr$lat>30 & grr$lat<48] <- NA
-  grr$lon[grr$lon>(-5) & grr$lon<0.5 & grr$lat>30 & grr$lat<48] <- NA
+  grr$lon[grr$lon>(-5) & grr$lon<0.5 & grr$lat>30 & grr$lat<42] <- NA
 }
 
 # remove caspian sea ---- 
@@ -307,11 +311,13 @@ for(ts in unique(grr$step)){
     
     # calculate what fraction of the time the logger was dry  -----        
     fun.time.dry <- function (x) {
+      if(!is.null(act)){
       slo2       <- act$wetdry[act$dtime >= min(x$tFirst) & act$dtime <= max(gr3$tSecond)]
       slo2.time  <- abs(as.numeric(difftime(min(x$tFirst), max(gr3$tSecond), units='secs')))
       sumact     <- (1 - sum(slo2) * wetdry.resolution / slo2.time)
       if(sumact > 1) sumact <- 1
       if(sumact < 0) sumact <- 0
+      } else {sumact <- 1}
       return(sumact)
     }
     gtime.dry    <- lapply (colt,fun.time.dry)  

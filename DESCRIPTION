@@ -1,6 +1,6 @@
 Package: ProMM
 Title: probabilistic movement model for geolocation data
-Version: 0.1.0
+Version: 0.2.0
 Author: Benjamin Merkel <benjamin.merkel@npolar.no>
 Maintainer: Benjamin Merkel <benjamin.merkel@npolar.no>
 Description: probabilistic movement model to analyze geolocation data from
