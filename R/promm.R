@@ -673,7 +673,7 @@ for(i in unique(newt2$step)){
 end.time   <- Sys.time()
 time.taken <- abs(difftime(end.time,start.time,units="mins"))
 
-print(paste('model run time:',as.numeric(time.taken),'min',sep=" "))
+cat(paste('model run time:',round(as.numeric(time.taken),1),'min',sep=" "))
 
 list.all            <- list(newt2,newg,all.particles,model.input,time.taken)
 names(list.all)     <- c('all bootstrapped tracks','most probable track','all possible particles','input parameters','model run time') 

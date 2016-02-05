@@ -35,7 +35,7 @@ trn_to_dataframe<-function(trnfile){
   output <- data.frame(tFirst=as.POSIXlt(tFirst,origin="1970-01-01",tz="UTC"),tSecond=as.POSIXlt(tSecond,origin="1970-01-01",tz="UTC"),type=type,ConvInt=ConvInt)
   
   # remove twilight sets further apart than 24 hours
-  output$type[as.numeric(abs(difftime(output$tFirst,output$tSecond,"hours")))>=24]<-0
+  output$type[abs(as.numeric(difftime(output$tFirst,output$tSecond,units="hours")))>=24]<-0
   output <- output[output$type %in% c(1,2),]
   return(output)
 }
