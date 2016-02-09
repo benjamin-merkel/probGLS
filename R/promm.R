@@ -17,6 +17,7 @@
 #' @param days.around.fall.equinox days before the Fall equinox, days after the Fall equinox. The Fall equinox is assumed constant at 22 September.
 #' @param ice.conc.cutoff max percentage of sea ice in which the animal is believed to be
 #' @param boundary.box min lon, max lon, min lat and max lat of extrem boundary where you expect an animal to be
+#' @param land.mask if T animal is only using ocean areas, if F animal is only using land areas, if NULL no land mask used
 #' @param med.black.sea if T remove mediterranean and black sea
 #' @param baltic.sea if T remove baltic sea
 #' @param caspian.sea if T remove caspian sea
@@ -33,7 +34,7 @@
 
 
 promm <-  function( particle.number             = 2000
-                   ,bootstrap.number            = 50
+                   ,bootstrap.number            = 60
                    ,loess.quartile              = NULL 
                    ,tagging.location            = c(0,0)
                    ,tagging.date     
@@ -48,6 +49,7 @@ promm <-  function( particle.number             = 2000
                    ,days.around.fall.equinox    = c(10,10) 
                    ,ice.conc.cutoff             = 1
                    ,boundary.box                = c(-90,70,0,90)
+                   ,land.mask                   = T
                    ,med.black.sea               = T        
                    ,baltic.sea                  = T      
                    ,caspian.sea                 = T    
@@ -254,8 +256,10 @@ landms               <- raster(landmask.location)
 
 coordinates(sp7)   <- cbind(sp7$lon,sp7$lat)
 proj4string(sp7)   <- CRS(proj.latlon)
-sp7$landmask         <- extract(landms,sp7)
-sp7                  <- sp7[sp7$landmask==1,]
+sp7$landmask       <- extract(landms,sp7)
+
+if(land.mask==T) sp7 <- sp7[sp7$landmask==1,]
+if(land.mask==F) sp7 <- sp7[sp7$landmask==0,]
 
 # remove all point clouds with less than 10 % points outside land ----
 jt                   <- data.frame(jt=names(sort(table(sp7$loop.step))),no=sort(table(sp7$loop.step)))

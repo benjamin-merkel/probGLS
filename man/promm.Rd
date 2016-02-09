@@ -4,14 +4,14 @@
 \alias{promm}
 \title{probabilistic movement model for geolocation data}
 \usage{
-promm(particle.number = 2000, bootstrap.number = 50,
+promm(particle.number = 2000, bootstrap.number = 60,
   loess.quartile = NULL, tagging.location = c(0, 0), tagging.date,
   retrieval.date, twilight.sd = 10, range.sun.elev = c(-7, -1, 0.1),
   speed.wet = c(20, 0.2, 25), speed.dry = c(20, 0.2, 25), sst.sd = 0.5,
   max.sst.diff = 3, days.around.spring.equinox = c(10, 10),
   days.around.fall.equinox = c(10, 10), ice.conc.cutoff = 1,
-  boundary.box = c(-90, 70, 0, 90), med.black.sea = T, baltic.sea = T,
-  caspian.sea = T, east.west.comp = T, sensor, trn, act,
+  boundary.box = c(-90, 70, 0, 90), land.mask = T, med.black.sea = T,
+  baltic.sea = T, caspian.sea = T, east.west.comp = T, sensor, trn, act,
   wetdry.resolution = 30,
   NOAA.OI.location = "E:/environmental data/SST/NOAA OI SST V2")
 }
@@ -47,6 +47,8 @@ promm(particle.number = 2000, bootstrap.number = 50,
 \item{ice.conc.cutoff}{max percentage of sea ice in which the animal is believed to be}
 
 \item{boundary.box}{min lon, max lon, min lat and max lat of extrem boundary where you expect an animal to be}
+
+\item{land.mask}{if T animal is only using ocean areas, if F animal is only using land areas, if NULL no land mask used}
 
 \item{med.black.sea}{if T remove mediterranean and black sea}
 
