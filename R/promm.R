@@ -17,8 +17,8 @@
 #' @param days.around.fall.equinox days before the Fall equinox, days after the Fall equinox. The Fall equinox is assumed constant at 22 September.
 #' @param ice.conc.cutoff max percentage of sea ice in which the animal is believed to be
 #' @param boundary.box min lon, max lon, min lat and max lat of extrem boundary where you expect an animal to be
-#' @param land.mask if T animal is only using ocean areas, if F animal is only using land areas, if NULL no land mask used
-#' @param med.black.sea if T remove mediterranean and black sea
+#' @param land.mask if 'sea' animal is only using ocean areas, if 'land' animal is only using land areas, if NULL no land mask used
+#' @param med.black.sea if 'sea' remove mediterranean and black sea from ocean areas, if 'land' include mediterranean and black   
 #' @param baltic.sea if T remove baltic sea
 #' @param caspian.sea if T remove caspian sea
 #' @param east.west.comp if T apply biotrack east west movement compensation (Biotrack manual v11 page 31pp.)
@@ -261,6 +261,20 @@ coordinates(sp7)   <- cbind(sp7$lon,sp7$lat)
 proj4string(sp7)   <- CRS(proj.latlon)
 sp7$landmask       <- extract(landms,sp7)
 
+
+# remove baltic sea ---- 
+if(baltic.sea==T)  grr$landmask[grr$lon>14     & grr$lon<33.5 & grr$lat>51.4 & grr$lat<66.2] <- 0
+
+# remove  meditereanian and black sea -----
+if(med.black.sea==T) {
+  grr$landmask[grr$lon>0 & grr$lon<45 & grr$lat>30 & grr$lat<48]     <- 0
+  grr$landmask[grr$lon>(-5) & grr$lon<0.5 & grr$lat>30 & grr$lat<42] <- 0
+}
+
+# remove caspian sea ---- 
+if(caspian.sea==T) grr$landmask[grr$lon>45 & grr$lon<62 & grr$lat>35 & grr$lat<48] <- 0
+
+
 if(!is.null(land.mask)){
   if(land.mask==T) sp7 <- sp7[sp7$landmask==1,]
   if(land.mask==F) sp7 <- sp7[sp7$landmask==0,]
@@ -274,17 +288,6 @@ sp8                  <- sp7[sp7$loop.step %in% jt$jt[jt$no>=c(particle.number*0.
 grr                  <- as.data.frame(sp8)
 grr$lon[grr$lon>180] <- grr$lon[grr$lon>180]-360
 
-# remove baltic sea ---- 
-if(baltic.sea==T) grr$lon[grr$lon>14     & grr$lon<33.5 & grr$lat>51.4 & grr$lat<66.2] <- NA
-
-# remove  meditereanian and black sea -----
-if(med.black.sea==T) {
-  grr$lon[grr$lon>0 & grr$lon<45 & grr$lat>30 & grr$lat<48] <- NA
-  grr$lon[grr$lon>(-5) & grr$lon<0.5 & grr$lat>30 & grr$lat<42] <- NA
-}
-
-# remove caspian sea ---- 
-if(caspian.sea==T) grr$lon[grr$lon>45 & grr$lon<62 & grr$lat>35 & grr$lat<48] <- NA
 
 # create grr object-----
 grr              <- grr[!is.na(grr$lon),]
@@ -554,7 +557,7 @@ for(ts in unique(grr$step)){
                                             sst.diff    = gr3$sst.diff,
                                             sat.sst.err = gr3$sat.sst.err,
                                             sat.ice     = gr3$sat.ice))
-    if(!is.null(land.mask))  gr2   <- lapply(gr2,function(x) x[!is.na(x$sat.sst),])
+    if(!is.null(land.mask)) if(land.mask==T) gr2   <- lapply(gr2,function(x) x[!is.na(x$sat.sst),])
     
     
     # weigh each particle according to speed and SST
