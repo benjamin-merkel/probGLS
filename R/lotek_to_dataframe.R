@@ -15,7 +15,7 @@ lotek_to_dataframe<-function(date,sunrise,sunset,TRLon,TRLat){
   data <- data.frame(date,sunrise,sunset,TRLon,TRLat)
   
   data$TRLon[data$TRLon==200] <- NA
-  data$TRLat[data$TRLat==100] <- NA
+  data$TRLat[data$TRLat==100] <- 70
   
   data$sunrise <- as.character(data$sunrise)
   data$sunset  <- as.character(data$sunset)
@@ -70,6 +70,7 @@ lotek_to_dataframe<-function(date,sunrise,sunset,TRLon,TRLat){
   output <- data.frame(tFirst  = as.POSIXlt(tFirst ,origin="1970-01-01",tz="UTC"),
                        tSecond = as.POSIXlt(tSecond,origin="1970-01-01",tz="UTC"),
                        type)
+  output$type[abs(as.numeric(difftime(output$tFirst,output$tSecond,units="hours")))>=24]<-0
   output <- output[output$type>0,]
   
   return(output)

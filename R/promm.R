@@ -95,7 +95,10 @@ trn$jday      <- as.numeric(julian(trn$dtime))
 
 # remove all known data -----
 trn    <- trn   [trn$tFirst >= as.POSIXct(tagging.date) & trn$tSecond <= as.POSIXct(retrieval.date),]
-if(nrow(trn)==0)  stop('no data points in trn file between selected tagging and retrieval date',call.=F)
+trn    <- trn[!is.na(trn$tFirst) & !is.na(trn$tSecond),]
+
+
+  if(nrow(trn)==0)  stop('no data points in trn file between selected tagging and retrieval date',call.=F)
 
 # define projections-----
 proj.latlon <- "+proj=longlat +datum=WGS84 +no_defs +ellps=WGS84 +towgs84=0,0,0"
@@ -258,8 +261,10 @@ coordinates(sp7)   <- cbind(sp7$lon,sp7$lat)
 proj4string(sp7)   <- CRS(proj.latlon)
 sp7$landmask       <- extract(landms,sp7)
 
-if(land.mask==T) sp7 <- sp7[sp7$landmask==1,]
-if(land.mask==F) sp7 <- sp7[sp7$landmask==0,]
+if(!is.null(land.mask)){
+  if(land.mask==T) sp7 <- sp7[sp7$landmask==1,]
+  if(land.mask==F) sp7 <- sp7[sp7$landmask==0,]
+}
 
 # remove all point clouds with less than 10 % points outside land ----
 jt                   <- data.frame(jt=names(sort(table(sp7$loop.step))),no=sort(table(sp7$loop.step)))
@@ -549,7 +554,7 @@ for(ts in unique(grr$step)){
                                             sst.diff    = gr3$sst.diff,
                                             sat.sst.err = gr3$sat.sst.err,
                                             sat.ice     = gr3$sat.ice))
-    gr2   <- lapply(gr2,function(x) x[!is.na(x$sat.sst),])
+    if(!is.null(land.mask))  gr2   <- lapply(gr2,function(x) x[!is.na(x$sat.sst),])
     
     
     # weigh each particle according to speed and SST
@@ -677,7 +682,7 @@ for(i in unique(newt2$step)){
 end.time   <- Sys.time()
 time.taken <- abs(difftime(end.time,start.time,units="mins"))
 
-cat(paste('model run time:',round(as.numeric(time.taken),1),'min',sep=" "))
+cat(paste('model run time:',round(as.numeric(time.taken),1),'min',sep=" "),'\n')
 
 list.all            <- list(newt2,newg,all.particles,model.input,time.taken)
 names(list.all)     <- c('all bootstrapped tracks','most probable track','all possible particles','input parameters','model run time') 
