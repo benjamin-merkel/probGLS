@@ -60,6 +60,7 @@ promm <-  function( particle.number             = 2000
                    ,trn     
                    ,act  
                    ,wetdry.resolution           = 30
+                   ,backward                    = F
                    ,NOAA.OI.location            = 'E:/environmental data/SST/NOAA OI SST V2'){
 
 start.time <- Sys.time()
@@ -308,14 +309,19 @@ grr              <- grr[order(grr$dtime),]
 
 # create current location list and start with tagging.location and time of tagging-----
 col2             <- col
-col2$dtime       <- as.POSIXct(tagging.date)
+if(backward==F) col2$dtime       <- as.POSIXct(tagging.date)
+if(backward==T) col2$dtime       <- as.POSIXct(retrieval.date)
 col2$jday        <- as.numeric(julian(col2$dtime))
 colt             <- vector("list",length=bootstrap.number)
 colt[1:bootstrap.number] <- col2
 
 # loop through each step ----
 iter = 0
-for(ts in unique(grr$step)){
+
+if(backward==F) steps <- sort(unique(grr$step))
+if(backward==T) steps <- sort(unique(grr$step),decreasing=T)
+
+for(ts in steps){
   step.start <- Sys.time()
   
   if(length(grr$dtime[grr$step == ts])>0){

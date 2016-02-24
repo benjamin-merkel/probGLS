@@ -12,7 +12,7 @@ promm(particle.number = 2000, bootstrap.number = 60,
   days.around.fall.equinox = c(10, 10), ice.conc.cutoff = 1,
   boundary.box = c(-90, 70, 0, 90), med.sea = T, black.sea = T,
   baltic.sea = T, caspian.sea = T, land.mask = T, east.west.comp = T,
-  sensor, trn, act, wetdry.resolution = 30,
+  sensor, trn, act, wetdry.resolution = 30, backward = F,
   NOAA.OI.location = "E:/environmental data/SST/NOAA OI SST V2")
 }
 \arguments{
