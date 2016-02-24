@@ -10,9 +10,9 @@ promm(particle.number = 2000, bootstrap.number = 60,
   speed.wet = c(20, 0.2, 25), speed.dry = c(20, 0.2, 25), sst.sd = 0.5,
   max.sst.diff = 3, days.around.spring.equinox = c(10, 10),
   days.around.fall.equinox = c(10, 10), ice.conc.cutoff = 1,
-  boundary.box = c(-90, 70, 0, 90), land.mask = T, med.black.sea = T,
-  baltic.sea = T, caspian.sea = T, east.west.comp = T, sensor, trn, act,
-  wetdry.resolution = 30,
+  boundary.box = c(-90, 70, 0, 90), med.sea = T, black.sea = T,
+  baltic.sea = T, caspian.sea = T, land.mask = T, east.west.comp = T,
+  sensor, trn, act, wetdry.resolution = 30,
   NOAA.OI.location = "E:/environmental data/SST/NOAA OI SST V2")
 }
 \arguments{
@@ -48,13 +48,15 @@ promm(particle.number = 2000, bootstrap.number = 60,
 
 \item{boundary.box}{min lon, max lon, min lat and max lat of extrem boundary where you expect an animal to be}
 
+\item{med.sea}{if T classifiy mediterranean sea as land}
+
+\item{black.sea}{if T classifiy black sea as land}
+
+\item{baltic.sea}{if T classifiy baltic sea as land}
+
+\item{caspian.sea}{if T classifiy caspian sea as land}
+
 \item{land.mask}{if T animal is only using ocean areas, if F animal is only using land areas, if NULL no land mask used}
-
-\item{med.black.sea}{if T remove mediterranean and black sea}
-
-\item{baltic.sea}{if T remove baltic sea}
-
-\item{caspian.sea}{if T remove caspian sea}
 
 \item{east.west.comp}{if T apply biotrack east west movement compensation (Biotrack manual v11 page 31pp.)}
 

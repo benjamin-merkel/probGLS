@@ -17,10 +17,11 @@
 #' @param days.around.fall.equinox days before the Fall equinox, days after the Fall equinox. The Fall equinox is assumed constant at 22 September.
 #' @param ice.conc.cutoff max percentage of sea ice in which the animal is believed to be
 #' @param boundary.box min lon, max lon, min lat and max lat of extrem boundary where you expect an animal to be
-#' @param land.mask if 'sea' animal is only using ocean areas, if 'land' animal is only using land areas, if NULL no land mask used
-#' @param med.black.sea if 'sea' remove mediterranean and black sea from ocean areas, if 'land' include mediterranean and black   
-#' @param baltic.sea if T remove baltic sea
-#' @param caspian.sea if T remove caspian sea
+#' @param med.sea if T classifiy mediterranean sea as land   
+#' @param black.sea if T classifiy black sea as land      
+#' @param baltic.sea if T classifiy baltic sea as land   
+#' @param caspian.sea if T classifiy caspian sea as land   
+#' @param land.mask if T animal is only using ocean areas, if F animal is only using land areas, if NULL no land mask used
 #' @param east.west.comp if T apply biotrack east west movement compensation (Biotrack manual v11 page 31pp.)
 #' @param sensor data.frame with daily SST data deduced from tag temperature readings (sst_deduction ouput)
 #' @param trn data.frame containing twilights and at least tFirst, tSecond and type (same as computed by trn_to_dataframe, ipe_to_dataframe or lotek_to_dataframe)
@@ -49,10 +50,11 @@ promm <-  function( particle.number             = 2000
                    ,days.around.fall.equinox    = c(10,10) 
                    ,ice.conc.cutoff             = 1
                    ,boundary.box                = c(-90,70,0,90)
-                   ,land.mask                   = T
-                   ,med.black.sea               = T        
+                   ,med.sea                     = T        
+                   ,black.sea                   = T        
                    ,baltic.sea                  = T      
                    ,caspian.sea                 = T    
+                   ,land.mask                   = T
                    ,east.west.comp              = T   
                    ,sensor        
                    ,trn     
@@ -68,12 +70,12 @@ start.time <- Sys.time()
 model.input <- data.frame(parameter=c('particle.number','bootstrap.number','loess.quartile','tagging.location',
                                      'tagging.date','retrieval.date','twilight.sd','range.sun.elev','speed.wet',
                                      'speed.dry','sst.sd','max.sst.diff','days.around.spring.equinox',
-                                     'days.around.fall.equinox','ice.conc.cutoff','boundary.box','med.black.sea',
+                                     'days.around.fall.equinox','ice.conc.cutoff','boundary.box','med.sea','black.sea',
                                      'baltic.sea','caspian.sea','east.west.comp','wetdry.resolution','NOAA.OI.location'),
                           chosen=c(paste(particle.number,collapse=" "),paste(bootstrap.number,collapse=" "),paste(loess.quartile,collapse=" "),paste(tagging.location,collapse=" "),
                                    paste(tagging.date,collapse=" "),paste(retrieval.date,collapse=" "),paste(twilight.sd,collapse=" "),paste(range.sun.elev,collapse=" "),paste(speed.wet,collapse=" "),
                                    paste(speed.dry,collapse=" "),paste(sst.sd,collapse=" "),paste(max.sst.diff,collapse=" "),paste(days.around.spring.equinox,collapse=" "),
-                                   paste(days.around.fall.equinox,collapse=" "),paste(ice.conc.cutoff,collapse=" "),paste(boundary.box,collapse=" "),paste(med.black.sea,collapse=" "),
+                                   paste(days.around.fall.equinox,collapse=" "),paste(ice.conc.cutoff,collapse=" "),paste(boundary.box,collapse=" "),paste(med.sea,collapse=" "),paste(black.sea,collapse=" "),
                                    paste(baltic.sea,collapse=" "),paste(caspian.sea,collapse=" "),paste(east.west.comp,collapse=" "),paste(wetdry.resolution,collapse=" "),paste(NOAA.OI.location,collapse=" ")))
 
 # find land mask file or error ----
@@ -263,16 +265,20 @@ sp7$landmask       <- extract(landms,sp7)
 
 
 # remove baltic sea ---- 
-if(baltic.sea==T)  grr$landmask[grr$lon>14     & grr$lon<33.5 & grr$lat>51.4 & grr$lat<66.2] <- 0
+if(baltic.sea==T)  sp7$landmask[sp7$lon>14     & sp7$lon<33.5 & sp7$lat>51.4 & sp7$lat<66.2] <- 0
 
-# remove  meditereanian and black sea -----
-if(med.black.sea==T) {
-  grr$landmask[grr$lon>0 & grr$lon<45 & grr$lat>30 & grr$lat<48]     <- 0
-  grr$landmask[grr$lon>(-5) & grr$lon<0.5 & grr$lat>30 & grr$lat<42] <- 0
+# remove meditereanian sea -----
+if(med.sea==T) {
+  sp7$landmask[sp7$lon>=0  & sp7$lon<=27  & sp7$lat>30 & sp7$lat<48] <- 0
+  sp7$landmask[sp7$lon>=27 & sp7$lon< 40  & sp7$lat>30 & sp7$lat<40] <- 0
+  sp7$landmask[sp7$lon>355 & sp7$lon<=360 & sp7$lat>30 & sp7$lat<42] <- 0
 }
 
+# remove black sea ---- 
+if(black.sea==T)   sp7$landmask[sp7$lon>27 & sp7$lon<45 & sp7$lat>40 & sp7$lat<48] <- 0
+
 # remove caspian sea ---- 
-if(caspian.sea==T) grr$landmask[grr$lon>45 & grr$lon<62 & grr$lat>35 & grr$lat<48] <- 0
+if(caspian.sea==T) sp7$landmask[sp7$lon>45 & sp7$lon<62 & sp7$lat>35 & sp7$lat<48] <- 0
 
 
 if(!is.null(land.mask)){
