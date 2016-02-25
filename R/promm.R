@@ -8,7 +8,7 @@
 #' @param tagging.date deployment data as POSIXct or Date object
 #' @param retrieval.date  retrieval date as POSIXct or Date object
 #' @param twilight.sd standard deviation around each sunrise or sunset event in min
-#' @param range.sun.elev min and max of sun elevation angle range in degree, resolution of sun elevation angle range
+#' @param range.sun.elev min and max of sun elevation angle range in degree
 #' @param speed.dry optimal speed, speed standard deviation and max speed allowed if logger is dry in m/s
 #' @param speed.wet optimal speed, speed standard deviation and max speed allowed if logger is wet in m/s
 #' @param sst.sd SST standard deviation in degree C 
@@ -41,7 +41,7 @@ promm <-  function( particle.number             = 2000
                    ,tagging.date     
                    ,retrieval.date   
                    ,twilight.sd                 = 10         
-                   ,range.sun.elev              = c(-7,-1,0.1)
+                   ,range.sun.elev              = c(-7,-1)
                    ,speed.wet                   = c(20,0.2,25)
                    ,speed.dry                   = c(20,0.2,25)
                    ,sst.sd                      = 0.5       
@@ -72,12 +72,13 @@ model.input <- data.frame(parameter=c('particle.number','bootstrap.number','loes
                                      'tagging.date','retrieval.date','twilight.sd','range.sun.elev','speed.wet',
                                      'speed.dry','sst.sd','max.sst.diff','days.around.spring.equinox',
                                      'days.around.fall.equinox','ice.conc.cutoff','boundary.box','med.sea','black.sea',
-                                     'baltic.sea','caspian.sea','east.west.comp','wetdry.resolution','NOAA.OI.location'),
+                                     'baltic.sea','caspian.sea','east.west.comp','wetdry.resolution','NOAA.OI.location','backward'),
                           chosen=c(paste(particle.number,collapse=" "),paste(bootstrap.number,collapse=" "),paste(loess.quartile,collapse=" "),paste(tagging.location,collapse=" "),
                                    paste(tagging.date,collapse=" "),paste(retrieval.date,collapse=" "),paste(twilight.sd,collapse=" "),paste(range.sun.elev,collapse=" "),paste(speed.wet,collapse=" "),
                                    paste(speed.dry,collapse=" "),paste(sst.sd,collapse=" "),paste(max.sst.diff,collapse=" "),paste(days.around.spring.equinox,collapse=" "),
                                    paste(days.around.fall.equinox,collapse=" "),paste(ice.conc.cutoff,collapse=" "),paste(boundary.box,collapse=" "),paste(med.sea,collapse=" "),paste(black.sea,collapse=" "),
-                                   paste(baltic.sea,collapse=" "),paste(caspian.sea,collapse=" "),paste(east.west.comp,collapse=" "),paste(wetdry.resolution,collapse=" "),paste(NOAA.OI.location,collapse=" ")))
+                                   paste(baltic.sea,collapse=" "),paste(caspian.sea,collapse=" "),paste(east.west.comp,collapse=" "),paste(wetdry.resolution,collapse=" "),paste(NOAA.OI.location,collapse=" "),
+                                   paste(backward,collapse=" ")))
 
 # find land mask file or error ----
 landmask.location <- list.files(path=NOAA.OI.location,pattern="lsmask.oisst.v2.nc",recursive=T)
@@ -180,7 +181,7 @@ ho4[,2] <- as.POSIXct(as.numeric(as.character(ho4[,2])),origin="1970-01-01",tz="
 ho4[,4] <- as.POSIXct(as.numeric(as.character(ho4[,4])),origin="1970-01-01",tz="UTC")
 
 # add sun elevation angle-----
-sun.elev.steps <- seq(range.sun.elev[1],range.sun.elev[2],range.sun.elev[3])
+sun.elev.steps <- seq(range.sun.elev[1],range.sun.elev[2],0.01)
 ho4$sun.elev   <- sample(sun.elev.steps,size=nrow(ho4),replace=T)
 
 # vary tFirst and tSecond----
