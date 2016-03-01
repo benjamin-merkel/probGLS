@@ -2,13 +2,13 @@
 #' 
 #' promm is a simple probabilistic movement model to be used with geolocation data.
 #' @param particle.number number of particles for each location cloud used in the model
-#' @param bootstrap.number number of iterations
+#' @param iteration.number number of iterations
 #' @param loess.quartile quartiles for loessFilter (GeoLight), if NULL loess filter is not used
 #' @param tagging.location tagging location longitude and latitude
 #' @param tagging.date deployment data as POSIXct or Date object
 #' @param retrieval.date  retrieval date as POSIXct or Date object
 #' @param twilight.sd standard deviation around each sunrise or sunset event in min
-#' @param range.sun.elev min and max of sun elevation angle range in degree
+#' @param range.solar min and max of solar angle range in degree
 #' @param speed.dry optimal speed, speed standard deviation and max speed allowed if logger is dry in m/s
 #' @param speed.wet optimal speed, speed standard deviation and max speed allowed if logger is wet in m/s
 #' @param sst.sd SST standard deviation in degree C 
@@ -28,20 +28,20 @@
 #' @param act data.frame containing wet dry data (e.g. .act file from Biotrack loggers or .deg file from migrate tech loggers), NULL if no wetdry data is available (algorithm will assume that the logger was always dry)
 #' @param wetdry.resolution sampling rate of conductivity switch in sec (e.g. MK15 & MK3006 sample every 3 sec)
 #' @param NOAA.OI.location directory location of NOAA OI V2 NCDF files as well as land mask file 'lsmask.oisst.v2.nc' (downloadable from http://www.esrl.noaa.gov/psd/data/gridded/data.noaa.oisst.v2.highres.html)
-#' @return A list with: [1] all bootstrapped positions, [2] geographic median positions, [3] all possible particles, [4] input parameter, [5] model run time; list items 1 to 3 are returned as SpatialPointsDataframe
-#' @details Many weighting parameters can be used some others (which are not yet implemented) are: surface air temperature and topography
+#' @return A list with: [1] all positions, [2] geographic median positions, [3] all possible particles, [4] input parameters, [5] model run time. List items 1 to 3 are returned as SpatialPointsDataframe.
+#' @details Many weighting parameters can be used some others (which are not yet implemented) are: surface air temperature and topography/ bathymetry.
 #' @export
 
 
 
 promm <-  function( particle.number             = 2000
-                   ,bootstrap.number            = 60
+                   ,iteration.number            = 60
                    ,loess.quartile              = NULL 
                    ,tagging.location            = c(0,0)
                    ,tagging.date     
                    ,retrieval.date   
                    ,twilight.sd                 = 10         
-                   ,range.sun.elev              = c(-7,-1)
+                   ,range.solar                 = c(-7,-1)
                    ,speed.wet                   = c(20,0.2,25)
                    ,speed.dry                   = c(20,0.2,25)
                    ,sst.sd                      = 0.5       
@@ -49,12 +49,12 @@ promm <-  function( particle.number             = 2000
                    ,days.around.spring.equinox  = c(10,10)   
                    ,days.around.fall.equinox    = c(10,10) 
                    ,ice.conc.cutoff             = 1
-                   ,boundary.box                = c(-90,70,0,90)
+                   ,boundary.box                = c(-180,180,-90,90)
                    ,med.sea                     = T        
                    ,black.sea                   = T        
                    ,baltic.sea                  = T      
                    ,caspian.sea                 = T    
-                   ,land.mask                   = T
+                   ,land.mask                   = NULL
                    ,east.west.comp              = T   
                    ,sensor        
                    ,trn     
@@ -68,13 +68,13 @@ start.time <- Sys.time()
 
 
 
-model.input <- data.frame(parameter=c('particle.number','bootstrap.number','loess.quartile','tagging.location',
-                                     'tagging.date','retrieval.date','twilight.sd','range.sun.elev','speed.wet',
+model.input <- data.frame(parameter=c('particle.number','iteration.number','loess.quartile','tagging.location',
+                                     'tagging.date','retrieval.date','twilight.sd','range.solar','speed.wet',
                                      'speed.dry','sst.sd','max.sst.diff','days.around.spring.equinox',
                                      'days.around.fall.equinox','ice.conc.cutoff','boundary.box','med.sea','black.sea',
                                      'baltic.sea','caspian.sea','east.west.comp','wetdry.resolution','NOAA.OI.location','backward'),
-                          chosen=c(paste(particle.number,collapse=" "),paste(bootstrap.number,collapse=" "),paste(loess.quartile,collapse=" "),paste(tagging.location,collapse=" "),
-                                   paste(tagging.date,collapse=" "),paste(retrieval.date,collapse=" "),paste(twilight.sd,collapse=" "),paste(range.sun.elev,collapse=" "),paste(speed.wet,collapse=" "),
+                          chosen=c(paste(particle.number,collapse=" "),paste(iteration.number,collapse=" "),paste(loess.quartile,collapse=" "),paste(tagging.location,collapse=" "),
+                                   paste(tagging.date,collapse=" "),paste(retrieval.date,collapse=" "),paste(twilight.sd,collapse=" "),paste(range.solar,collapse=" "),paste(speed.wet,collapse=" "),
                                    paste(speed.dry,collapse=" "),paste(sst.sd,collapse=" "),paste(max.sst.diff,collapse=" "),paste(days.around.spring.equinox,collapse=" "),
                                    paste(days.around.fall.equinox,collapse=" "),paste(ice.conc.cutoff,collapse=" "),paste(boundary.box,collapse=" "),paste(med.sea,collapse=" "),paste(black.sea,collapse=" "),
                                    paste(baltic.sea,collapse=" "),paste(caspian.sea,collapse=" "),paste(east.west.comp,collapse=" "),paste(wetdry.resolution,collapse=" "),paste(NOAA.OI.location,collapse=" "),
@@ -97,7 +97,7 @@ trn$month     <- as.numeric(strftime(trn$dtime, format = "%m"))
 trn$year      <- as.numeric(strftime(trn$dtime, format = "%Y"))
 trn$jday      <- as.numeric(julian(trn$dtime))
 
-# remove all known data -----
+# remove outside known data -----
 trn    <- trn   [trn$tFirst >= as.POSIXct(tagging.date) & trn$tSecond <= as.POSIXct(retrieval.date),]
 trn    <- trn[!is.na(trn$tFirst) & !is.na(trn$tSecond),]
 
@@ -123,7 +123,7 @@ col$tFirst.err   <- NA
 col$tSecond.err  <- NA
 col$sun.elev     <- NA
 col$step         <- NA
-col$bootstrap    <- NA
+col$iteration    <- NA
 col$bearing      <- NA
 col$distance     <- NA
 col$frac.timedry <- NA
@@ -181,7 +181,7 @@ ho4[,2] <- as.POSIXct(as.numeric(as.character(ho4[,2])),origin="1970-01-01",tz="
 ho4[,4] <- as.POSIXct(as.numeric(as.character(ho4[,4])),origin="1970-01-01",tz="UTC")
 
 # add sun elevation angle-----
-sun.elev.steps <- seq(range.sun.elev[1],range.sun.elev[2],0.01)
+sun.elev.steps <- seq(range.solar[1],range.solar[2],0.01)
 ho4$sun.elev   <- sample(sun.elev.steps,size=nrow(ho4),replace=T)
 
 # vary tFirst and tSecond----
@@ -313,8 +313,8 @@ col2             <- col
 if(backward==F) col2$dtime       <- as.POSIXct(tagging.date)
 if(backward==T) col2$dtime       <- as.POSIXct(retrieval.date)
 col2$jday        <- as.numeric(julian(col2$dtime))
-colt             <- vector("list",length=bootstrap.number)
-colt[1:bootstrap.number] <- col2
+colt             <- vector("list",length=iteration.number)
+colt[1:iteration.number] <- col2
 
 # loop through each step ----
 iter = 0
@@ -347,9 +347,9 @@ for(ts in steps){
     }
     gtime.dry    <- lapply (colt,fun.time.dry)  
     
-    # create list with one data frame for each bootstrap iteration-----
-    gr2                     <- vector("list",length=bootstrap.number)
-    gr2[1:bootstrap.number] <- gr3
+    # create list with one data frame for each iteration-----
+    gr2                     <- vector("list",length=iteration.number)
+    gr2[1:iteration.number] <- gr3
     gr2                     <- lapply(gr2,function(x) data.frame(x))
     gr2                     <- mapply(cbind,gr2,gbear=gbear,gdist=gdist,time.dry=gtime.dry, SIMPLIFY = FALSE)
     
@@ -604,12 +604,12 @@ for(ts in steps){
     
     
     # create list for next step particles-----
-    new.r        <- vector("list",length=bootstrap.number)
-    new.r2       <- vector("list",length=bootstrap.number)
-    random.point <- vector("list",length=bootstrap.number)
+    new.r        <- vector("list",length=iteration.number)
+    new.r2       <- vector("list",length=iteration.number)
+    random.point <- vector("list",length=iteration.number)
         
     # choose a specific random point based on weighing of particles
-    for(botts in 1:bootstrap.number){
+    for(botts in 1:iteration.number){
       
       # if all weights are 0 and/or NA jump this position
       if(length(gr2[[botts]]$grel[gr2[[botts]]$grel>0 & !is.na(gr2[[botts]]$grel)])>0){
@@ -632,7 +632,7 @@ for(ts in steps){
         new.r[[botts]]$sex          <- gr2[[botts]]$sex[random.point[[botts]]]
         new.r[[botts]]$morph        <- gr2[[botts]]$morp[random.point[[botts]]]
         new.r[[botts]]$step         <- ts
-        new.r[[botts]]$bootstrap    <- botts
+        new.r[[botts]]$iteration    <- botts
         new.r[[botts]]$bearing      <- gr2[[botts]]$gbear[random.point[[botts]]]
         new.r[[botts]]$distance     <- gr2[[botts]]$gdist[random.point[[botts]]]
         new.r[[botts]]$frac.timedry <- gr2[[botts]]$time.dry[random.point[[botts]]]
@@ -683,7 +683,7 @@ newt2$jday2        <- as.numeric(julian(newt2$dtime))
 newt2              <- newt2[order(newt2$step),]
 newt2$month        <- as.numeric(strftime(newt2$dtime,'%m'))
 
-# calculate geographic median for each bootstrap cloud----
+# calculate geographic median for each particle cloud----
 for(i in unique(newt2$step)){
   sf                  <- data.frame(spDists(newt2[newt2$step==i,1:2],longlat=T),ncol=length(newt2$step[newt2$step==i]))
   sa                  <- data.frame(sum.dist=rowMeans(sf),bot=seq(1,length(newt2$step[newt2$step==i]),1))
@@ -701,7 +701,7 @@ time.taken <- abs(difftime(end.time,start.time,units="mins"))
 cat(paste('model run time:',round(as.numeric(time.taken),1),'min',sep=" "),'\n')
 
 list.all            <- list(newt2,newg,all.particles,model.input,time.taken)
-names(list.all)     <- c('all bootstrapped tracks','most probable track','all possible particles','input parameters','model run time') 
+names(list.all)     <- c('all tracks','most probable track','all possible particles','input parameters','model run time') 
 
 return(list.all)
 }

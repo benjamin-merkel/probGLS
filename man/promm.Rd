@@ -4,21 +4,21 @@
 \alias{promm}
 \title{probabilistic movement model for geolocation data}
 \usage{
-promm(particle.number = 2000, bootstrap.number = 60,
+promm(particle.number = 2000, iteration.number = 60,
   loess.quartile = NULL, tagging.location = c(0, 0), tagging.date,
-  retrieval.date, twilight.sd = 10, range.sun.elev = c(-7, -1, 0.1),
+  retrieval.date, twilight.sd = 10, range.solar = c(-7, -1),
   speed.wet = c(20, 0.2, 25), speed.dry = c(20, 0.2, 25), sst.sd = 0.5,
   max.sst.diff = 3, days.around.spring.equinox = c(10, 10),
   days.around.fall.equinox = c(10, 10), ice.conc.cutoff = 1,
-  boundary.box = c(-90, 70, 0, 90), med.sea = T, black.sea = T,
-  baltic.sea = T, caspian.sea = T, land.mask = T, east.west.comp = T,
+  boundary.box = c(-180, 180, -90, 90), med.sea = T, black.sea = T,
+  baltic.sea = T, caspian.sea = T, land.mask = NULL, east.west.comp = T,
   sensor, trn, act, wetdry.resolution = 30, backward = F,
   NOAA.OI.location = "E:/environmental data/SST/NOAA OI SST V2")
 }
 \arguments{
 \item{particle.number}{number of particles for each location cloud used in the model}
 
-\item{bootstrap.number}{number of iterations}
+\item{iteration.number}{number of iterations}
 
 \item{loess.quartile}{quartiles for loessFilter (GeoLight), if NULL loess filter is not used}
 
@@ -30,7 +30,7 @@ promm(particle.number = 2000, bootstrap.number = 60,
 
 \item{twilight.sd}{standard deviation around each sunrise or sunset event in min}
 
-\item{range.sun.elev}{min and max of sun elevation angle range in degree, resolution of sun elevation angle range}
+\item{range.solar}{min and max of solar angle range in degree}
 
 \item{speed.wet}{optimal speed, speed standard deviation and max speed allowed if logger is wet in m/s}
 
@@ -71,12 +71,12 @@ promm(particle.number = 2000, bootstrap.number = 60,
 \item{NOAA.OI.location}{directory location of NOAA OI V2 NCDF files as well as land mask file 'lsmask.oisst.v2.nc' (downloadable from http://www.esrl.noaa.gov/psd/data/gridded/data.noaa.oisst.v2.highres.html)}
 }
 \value{
-A list with: [1] all bootstrapped positions, [2] geographic median positions, [3] all possible particles, [4] input parameter, [5] model run time; list items 1 to 3 are returned as SpatialPointsDataframe
+A list with: [1] all positions, [2] geographic median positions, [3] all possible particles, [4] input parameters, [5] model run time. List items 1 to 3 are returned as SpatialPointsDataframe.
 }
 \description{
 promm is a simple probabilistic movement model to be used with geolocation data.
 }
 \details{
-Many weighting parameters can be used some others (which are not yet implemented) are: surface air temperature and topography
+Many weighting parameters can be used some others (which are not yet implemented) are: surface air temperature and topography/ bathymetry.
 }
 
