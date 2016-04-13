@@ -1,7 +1,7 @@
-#' plot timeline of model output
+#' plot timeline of algorithm output
 #' 
-#' plot timeline of model output
-#' @param pr promm model output
+#' plot timeline of algorithm output
+#' @param pr probGLS algorithm output
 #' @param degElevation sun elevation angle for comparison threshold method, if NULL no threshold positions are plotted
 #' @export
 

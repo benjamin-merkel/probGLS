@@ -1,7 +1,7 @@
-#' plot map of model output
+#' plot map of algorithm output
 #' 
-#' plot map of model output
-#' @param pr promm model output
+#' plot map of algorithm output
+#' @param pr probGLS algorithm output
 #' @export
 
 

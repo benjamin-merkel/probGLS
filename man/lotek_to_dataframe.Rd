@@ -18,7 +18,7 @@ lotek_to_dataframe(date, sunrise, sunset, TRLon, TRLat)
 \item{TRLat}{threshold method calculated latitude in daylog file}
 }
 \value{
-A data.frame for further use in GeoLight or ProMM
+A data.frame for further use in GeoLight or probGLS
 
 modified after trnTrans() in GeoLight by Tamara Emmenegger
 }

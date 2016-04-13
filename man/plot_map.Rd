@@ -2,14 +2,14 @@
 % Please edit documentation in R/plot_map.R
 \name{plot_map}
 \alias{plot_map}
-\title{plot map of model output}
+\title{plot map of algorithm output}
 \usage{
 plot_map(pr)
 }
 \arguments{
-\item{pr}{promm model output}
+\item{pr}{probGLS algorithm output}
 }
 \description{
-plot map of model output
+plot map of algorithm output
 }
 

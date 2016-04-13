@@ -10,7 +10,7 @@ trn_to_dataframe(trnfile)
 \item{trnfile}{the trn file to be transformed}
 }
 \value{
-A data.frame for further use in GeoLight or ProMM
+A data.frame for further use in GeoLight or probGLS
 
 modified after trnTrans() in GeoLight by Tamara Emmenegger
 }

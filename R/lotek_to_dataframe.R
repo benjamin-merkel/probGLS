@@ -6,7 +6,7 @@
 #' @param sunset column "Sunset" in daylog file as as.character()
 #' @param TRLon threshold method calculated longitude in daylog file
 #' @param TRLat threshold method calculated latitude in daylog file
-#' @return A data.frame for further use in GeoLight or ProMM
+#' @return A data.frame for further use in GeoLight or probGLS
 #' @return modified after trnTrans() in GeoLight by Tamara Emmenegger
 #' @export
 

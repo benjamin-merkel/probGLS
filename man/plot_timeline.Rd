@@ -2,16 +2,16 @@
 % Please edit documentation in R/plot_timeline.R
 \name{plot_timeline}
 \alias{plot_timeline}
-\title{plot timeline of model output}
+\title{plot timeline of algorithm output}
 \usage{
 plot_timeline(pr, degElevation = NULL)
 }
 \arguments{
-\item{pr}{promm model output}
+\item{pr}{probGLS algorithm output}
 
 \item{degElevation}{sun elevation angle for comparison threshold method, if NULL no threshold positions are plotted}
 }
 \description{
-plot timeline of model output
+plot timeline of algorithm output
 }
 

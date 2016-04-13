@@ -1,6 +1,6 @@
-#' probabilistic movement model for geolocation data
+#' probabilistic algorithm for geolocation data
 #' 
-#' promm is a simple probabilistic movement model to be used with geolocation data.
+#' prob_algorithm is a simple probabilistic algorithm to be used with geolocation data.
 #' @param particle.number number of particles for each location cloud used in the model
 #' @param iteration.number number of iterations
 #' @param loess.quartile quartiles for loessFilter (GeoLight), if NULL loess filter is not used
@@ -29,12 +29,74 @@
 #' @param wetdry.resolution sampling rate of conductivity switch in sec (e.g. MK15 & MK3006 sample every 3 sec)
 #' @param NOAA.OI.location directory location of NOAA OI V2 NCDF files as well as land mask file 'lsmask.oisst.v2.nc' (downloadable from http://www.esrl.noaa.gov/psd/data/gridded/data.noaa.oisst.v2.highres.html)
 #' @return A list with: [1] all positions, [2] geographic median positions, [3] all possible particles, [4] input parameters, [5] model run time. List items 1 to 3 are returned as SpatialPointsDataframe.
-#' @details Many weighting parameters can be used some others (which are not yet implemented) are: surface air temperature and topography/ bathymetry.
+#' @details Many weighting parameters can be used. Some others (which are not yet implemented) are: surface air temperature and topography/ bathymetry.
+#' @examples
+#'######################################
+#'# example black browed albatross track 
+#'######################################
+#' 
+#'# define start and end datetimes ----
+#'start <- as.POSIXct("2014-12-13 17:55",tz="UTC")
+#'end   <- as.POSIXct("2014-12-22 08:55",tz="UTC")
+#'
+#'# light data ----
+#'trn           <- twilightCalc(BBA_lux$dtime,BBA_lux$lig,ask=F,LightThreshold = 2)
+#'
+#'# sst data ----
+#'sen           <- sst_deduction(datetime = BBA_sst$dtime, temp = BBA_sst$temp, temp.range = c(-2,30))
+#'
+#'# wet dry data ----
+#'act           <- BBA_deg[BBA_deg$wet.dry=="wet",]
+#'act$wetdry    <- act$duration
+#'
+#'# download environmental data ----
+#'
+#'# download yearly NetCDF files for (replace YEAR with appropriate number): 
+#'# daily mean SST                   -> 'sst.day.mean.YEAR.v2.nc'
+#'# daily SST error                  -> 'sst.day.err.YEAR.v2.nc'
+#'# daily mean sea ice concentration -> 'icec.day.mean.YEAR.v2.nc'
+#'
+#'# from:
+#'# http://www.esrl.noaa.gov/psd/data/gridded/data.noaa.oisst.v2.highres.html
+#'# and place all into the same folder
+#'
+#'# Also, download the land mask file: 'lsmask.oisst.v2.nc' from the same directory 
+#'# and place it in the same folder as all the other NetCDF files
+#'
+#'# run algorithm ----
+#'pr   <- prob_algorithm(trn                         = trn, 
+#'                       sensor                      = sen, 
+#'                       act                         = act, 
+#'                       tagging.date                = start, 
+#'                       retrieval.date              = end, 
+#'                       loess.quartile              = NULL, 
+#'                       tagging.location            = c(-36.816,-54.316), 
+#'                       particle.number             = 1000, 
+#'                       iteration.number            = 100,
+#'                       twilight.sd                 = 15,
+#'                       range.solar                 = c(-7,-1),
+#'                       boundary.box                = c(-120,40,-90,0),
+#'                       days.around.spring.equinox  = c(0,0), 
+#'                       days.around.fall.equinox    = c(0,0),
+#'                       speed.dry                   = c(12,6,45),
+#'                       speed.wet                   = c(1,1.3,5), 
+#'                       sst.sd                      = 0.5,       
+#'                       max.sst.diff                = 3,          
+#'                       east.west.comp              = T, 
+#'                       ice.conc.cutoff             = 1, 
+#'                       wetdry.resolution           = 1,
+#'                       NOAA.OI.location            = "folder with environmental data and land mask")
+#'
+#'# plot lat, lon, SST vs time ----
+#'plot_timeline(pr,degElevation = NULL)
+#'
+#'# plot lon vs lat map ----
+#'plot_map(pr)
 #' @export
 
 
 
-promm <-  function( particle.number             = 2000
+prob_algorithm <- function(particle.number      = 2000
                    ,iteration.number            = 60
                    ,loess.quartile              = NULL 
                    ,tagging.location            = c(0,0)
@@ -102,7 +164,7 @@ trn    <- trn   [trn$tFirst >= as.POSIXct(tagging.date) & trn$tSecond <= as.POSI
 trn    <- trn[!is.na(trn$tFirst) & !is.na(trn$tSecond),]
 
 
-  if(nrow(trn)==0)  stop('no data points in trn file between selected tagging and retrieval date',call.=F)
+if(nrow(trn)==0)  stop('no data points in trn file between selected tagging and retrieval date',call.=F)
 
 # define projections-----
 proj.latlon <- "+proj=longlat +datum=WGS84 +no_defs +ellps=WGS84 +towgs84=0,0,0"
@@ -575,15 +637,16 @@ for(ts in steps){
     
     # weigh each particle according to speed and SST
     fun.gsst   <- function(x) {   dnorm(x$sst.diff, mean = 0, sd = sst.sd+x$sat.sst.err)/
-                              max(dnorm(0,          mean = 0, sd = sst.sd+x$sat.sst.err))}
+                                  max(dnorm(0     , mean = 0, sd = sst.sd+x$sat.sst.err),na.rm=T)}
     
     fun.gspeed <- function(x) {      dnorm(x$gspeed,
-                                    mean = c((speed.dry[1]*x$time.dry)+(speed.wet[1]*(1-x$time.dry))),
-                                    sd   = c((speed.dry[2]*x$time.dry)+(speed.wet[2]*(1-x$time.dry))))/
+                                           mean = c((speed.dry[1]*x$time.dry)+(speed.wet[1]*(1-x$time.dry))),
+                                           sd   = c((speed.dry[2]*x$time.dry)+(speed.wet[2]*(1-x$time.dry))))/
                                  max(dnorm(c((speed.dry[1]*x$time.dry)+(speed.wet[1]*(1-x$time.dry))), 
-                                    mean = c((speed.dry[1]*x$time.dry)+(speed.wet[1]*(1-x$time.dry))),
-                                    sd   = c((speed.dry[2]*x$time.dry)+(speed.wet[2]*(1-x$time.dry)))))}
-   
+                                           mean = c((speed.dry[1]*x$time.dry)+(speed.wet[1]*(1-x$time.dry))),
+                                           sd   = c((speed.dry[2]*x$time.dry)+(speed.wet[2]*(1-x$time.dry)))),na.rm=T)}
+    
+    
     
     wsst   <- lapply(gr2,fun.gsst)
     wspeed <- lapply(gr2,fun.gspeed)
@@ -594,6 +657,8 @@ for(ts in steps){
                                        x$wspeed[x$sat.ice >ice.conc.cutoff]<-0 
                                        x$wsst  [x$sst.diff>  max.sst.diff ]<-0 
                                        x$wsst  [x$sst.diff<(-max.sst.diff)]<-0 
+                                       x$wsst  [is.na(x$wsst)]<-0 
+                                       
                                        return(x)})
     
     
