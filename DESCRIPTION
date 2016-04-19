@@ -1,15 +1,13 @@
 Package: probGLS
 Title: probabilistic algorithm for geolocation data
-Version: 0.4.0
+Version: 0.5.0
 Author: Benjamin Merkel <benjamin.merkel@npolar.no>
 Maintainer: Benjamin Merkel <benjamin.merkel@npolar.no>
 Description: A probabilistic algorithm to analyze geolocation data from various logger brands.
-Depends:
-    R (>= 3.2.3),
-    raster,
-    geosphere,
-    ncdf4,
-    GeoLight
-License: creative commons
+Depends: R (>= 3.2.3), GeoLight
+Imports: geosphere, maps, ncdf4, sp, raster
+License: GPL (>= 2)
+URL: https://github.com/benjamin-merkel
 RoxygenNote: 5.0.1
+LazyLoad: yes
 LazyData: yes

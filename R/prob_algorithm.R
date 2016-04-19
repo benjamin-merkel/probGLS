@@ -27,20 +27,26 @@
 #' @param trn data.frame containing twilights and at least tFirst, tSecond and type (same as computed by trn_to_dataframe, ipe_to_dataframe or lotek_to_dataframe)
 #' @param act data.frame containing wet dry data (e.g. .act file from Biotrack loggers or .deg file from migrate tech loggers), NULL if no wetdry data is available (algorithm will assume that the logger was always dry)
 #' @param wetdry.resolution sampling rate of conductivity switch in sec (e.g. MK15 & MK3006 sample every 3 sec)
+#' @param backward run algorithm from end to start
 #' @param NOAA.OI.location directory location of NOAA OI V2 NCDF files as well as land mask file 'lsmask.oisst.v2.nc' (downloadable from http://www.esrl.noaa.gov/psd/data/gridded/data.noaa.oisst.v2.highres.html)
 #' @return A list with: [1] all positions, [2] geographic median positions, [3] all possible particles, [4] input parameters, [5] model run time. List items 1 to 3 are returned as SpatialPointsDataframe.
 #' @details Many weighting parameters can be used. Some others (which are not yet implemented) are: surface air temperature and topography/ bathymetry.
+#' @import raster
+#' @import ncdf4
+#' @import geosphere
+#' @import GeoLight
+#' @import sp
 #' @examples
 #'######################################
 #'# example black browed albatross track 
 #'######################################
 #' 
 #'# define start and end datetimes ----
-#'start <- as.POSIXct("2014-12-13 17:55",tz="UTC")
-#'end   <- as.POSIXct("2014-12-22 08:55",tz="UTC")
+#'start <- as.POSIXct("2014-12-13 17:55", tz="UTC")
+#'end   <- as.POSIXct("2014-12-22 08:55", tz="UTC")
 #'
 #'# light data ----
-#'trn           <- twilightCalc(BBA_lux$dtime,BBA_lux$lig,ask=F,LightThreshold = 2)
+#'trn           <- twilightCalc(BBA_lux$dtime, BBA_lux$lig, ask = FALSE, LightThreshold = 2)
 #'
 #'# sst data ----
 #'sen           <- sst_deduction(datetime = BBA_sst$dtime, temp = BBA_sst$temp, temp.range = c(-2,30))
@@ -82,7 +88,7 @@
 #'                       speed.wet                   = c(1,1.3,5), 
 #'                       sst.sd                      = 0.5,       
 #'                       max.sst.diff                = 3,          
-#'                       east.west.comp              = T, 
+#'                       east.west.comp              = TRUE, 
 #'                       ice.conc.cutoff             = 1, 
 #'                       wetdry.resolution           = 1,
 #'                       NOAA.OI.location            = "folder with environmental data and land mask")
@@ -127,6 +133,8 @@ prob_algorithm <- function(particle.number      = 2000
 
 start.time <- Sys.time()
 
+#appease R CMD check
+tFirst <- tSecond <- type <- dtime <- doy <- jday <- year <- month <- NULL
 
 
 
@@ -160,8 +168,9 @@ trn$year      <- as.numeric(strftime(trn$dtime, format = "%Y"))
 trn$jday      <- as.numeric(julian(trn$dtime))
 
 # remove outside known data -----
-trn    <- trn   [trn$tFirst >= as.POSIXct(tagging.date) & trn$tSecond <= as.POSIXct(retrieval.date),]
-trn    <- trn[!is.na(trn$tFirst) & !is.na(trn$tSecond),]
+trn    <- trn[trn$tFirst >= as.POSIXct(tagging.date) & trn$tSecond <= as.POSIXct(retrieval.date),]
+trn    <- trn[!is.na(trn$tFirst),]
+trn    <- trn[!is.na(trn$tSecond),]
 
 
 if(nrow(trn)==0)  stop('no data points in trn file between selected tagging and retrieval date',call.=F)
@@ -170,7 +179,7 @@ if(nrow(trn)==0)  stop('no data points in trn file between selected tagging and 
 proj.latlon <- "+proj=longlat +datum=WGS84 +no_defs +ellps=WGS84 +towgs84=0,0,0"
 
 # create spatial tagging.location object-----
-col              <- as.data.frame(cbind(tagging.location[1],tagging.location[2]))
+col              <- as.data.frame(cbind(as.numeric(tagging.location[1]),as.numeric(tagging.location[2])))
 colnames(col)    <- c("lon","lat")
 coordinates(col) <- cbind(col$lon,col$lat)
 proj4string(col) <- proj.latlon
@@ -198,14 +207,14 @@ col$tag.sst      <- NA
 col$sst.diff     <- NA
 col$wsst         <- NA
 col$wspeed       <- NA
-col$wrel         <- NA
+col$wrel         <- 1
 
 # create empty spdf ----
 empty.spdf       <- col
 empty.spdf$wrel  <- 2
 
 # remove all twilight outliers----
-if(is.null(loess.quartile)==F){
+if(!is.null(loess.quartile)){
   trn$loes  <- loessFilter(trn, plot = T, k = loess.quartile)
   trn       <- trn[trn$loes == T,]
 }
@@ -213,7 +222,7 @@ if(is.null(loess.quartile)==F){
 # west east movement compensation----
 if(east.west.comp==T){
   datetime   <- trn$dtime
-  temp.lon   <- coord(trn,degElevation=-6,note=F)[,2]
+  temp.lon   <- coord(trn,degElevation= -6,note=F)[,2]
   longitude2 <- -temp.lon
   longitude1 <- -c(NA,temp.lon[1:(length(temp.lon)-1)])
   timedate2  <- as.numeric(datetime)
@@ -422,208 +431,222 @@ for(ts in steps){
     time.diff  <- lapply(gr2,function(x) difftime(x$dtime,x$prev.dtime,units="mins"))
     gr2        <- mapply(cbind,gr2,gspeed=gspeed,time.diff=time.diff, SIMPLIFY = FALSE)
     
-    # load needed SST, SST error and ice data-----
-    track2       <- data.frame(day   = c(as.numeric(as.character(substr(gr3$dtime[1],9,10)))),
-                               month = c(as.numeric(as.character(substr(gr3$dtime[1],6,7)))),
-                               year  = c(gr3$year[1]),
-                               lon   = c(floor(min(gr3$lon)),ceiling(max(gr3$lon))),
-                               lat   = c(floor(min(gr3$lat)),ceiling(max(gr3$lat))))
-    
-    fname.sst <- paste(NOAA.OI.location,'/sst.day.mean.' ,year=c(gr3$year[1]),'.v2.nc',sep='')
-    fname.err <- paste(NOAA.OI.location,'/sst.day.err.'  ,year=c(gr3$year[1]),'.v2.nc',sep='')
-    fname.ice <- paste(NOAA.OI.location,'/icec.day.mean.',year=c(gr3$year[1]),'.v2.nc',sep='')
+    if(!is.null(sensor)){
+      
+      sensor$jday  <- as.numeric(julian(sensor$date))
+      
+      
+      # load needed SST, SST error and ice data-----
+      track2       <- data.frame(day   = c(as.numeric(as.character(substr(gr3$dtime[1],9,10)))),
+                                 month = c(as.numeric(as.character(substr(gr3$dtime[1],6,7)))),
+                                 year  = c(gr3$year[1]),
+                                 lon   = c(floor(min(gr3$lon)),ceiling(max(gr3$lon))),
+                                 lat   = c(floor(min(gr3$lat)),ceiling(max(gr3$lat))))
+      
+      fname.sst <- paste(NOAA.OI.location,'/sst.day.mean.' ,year=c(gr3$year[1]),'.v2.nc',sep='')
+      fname.err <- paste(NOAA.OI.location,'/sst.day.err.'  ,year=c(gr3$year[1]),'.v2.nc',sep='')
+      fname.ice <- paste(NOAA.OI.location,'/icec.day.mean.',year=c(gr3$year[1]),'.v2.nc',sep='')
+          
+      if((min(track2$lon)*max(track2$lon))>=0){
+        if(min(track2$lon)<0) track2$lon[track2$lon==0]<-360
+        track2$lon[track2$lon<0] <- 360+track2$lon[track2$lon<0]
         
-    if((min(track2$lon)*max(track2$lon))>=0){
-      if(min(track2$lon)<0) track2$lon[track2$lon==0]<-360
-      track2$lon[track2$lon<0] <- 360+track2$lon[track2$lon<0]
+        
+        eoi <- load.NOAA.OISST.V2 (fname = fname.sst,
+                                  lsmask= landmask.location,
+                                  lonW  = min(track2$lon),
+                                  lonE  = max(track2$lon),
+                                  latS  = min(track2$lat),
+                                  latN  = max(track2$lat),
+                                  date1 = as.Date(paste(track2$year[1],track2$month[1],track2$day[1],sep="-")),
+                                  date2 = as.Date(paste(track2$year[1],track2$month[1],track2$day[1],sep="-")),
+                                  extract.value='sst')
+        
+        eii <- load.NOAA.OISST.V2 (fname = fname.ice,
+                                  lsmask= landmask.location,
+                                  lonW  = min(track2$lon),
+                                  lonE  = max(track2$lon),
+                                  latS  = min(track2$lat),
+                                  latN  = max(track2$lat),
+                                  date1 = as.Date(paste(track2$year[1],track2$month[1],track2$day[1],sep="-")),
+                                  date2 = as.Date(paste(track2$year[1],track2$month[1],track2$day[1],sep="-")),
+                                  extract.value='icec')
+        
+        eri <- load.NOAA.OISST.V2 (fname = fname.err,
+                                  lsmask= landmask.location,
+                                  lonW  = min(track2$lon),
+                                  lonE  = max(track2$lon),
+                                  latS  = min(track2$lat),
+                                  latN  = max(track2$lat),
+                                  date1 = as.Date(paste(track2$year[1],track2$month[1],track2$day[1],sep="-")),
+                                  date2 = as.Date(paste(track2$year[1],track2$month[1],track2$day[1],sep="-")),
+                                  extract.value='err')
+        
+        
+        
+        eoi2  <-  as.data.frame(as.table(as.matrix(eoi[,,1])))
+        colnames(eoi2) <- c("Lat","Long",'V1') 
+        eoi2$Lat  <- as.numeric(as.character(eoi2$Lat))
+        eoi2$Long <- as.numeric(as.character(eoi2$Long))
+        eoi2$Long[eoi2$Long>180] <- eoi2$Long[eoi2$Long>180]-360
+        
+        eii2  <-  as.data.frame(as.table(as.matrix(eii[,,1])))
+        colnames(eii2) <- c("Lat","Long",'V1') 
+        eii2$Lat  <- as.numeric(as.character(eii2$Lat))
+        eii2$Long <- as.numeric(as.character(eii2$Long))
+        eii2$Long[eii2$Long>180] <- eii2$Long[eii2$Long>180]-360
+        
+        eri2  <-  as.data.frame(as.table(as.matrix(eri[,,1])))
+        colnames(eri2) <- c("Lat","Long",'V1') 
+        eri2$Lat  <- as.numeric(as.character(eri2$Lat))
+        eri2$Long <- as.numeric(as.character(eri2$Long))
+        eri2$Long[eri2$Long>180] <- eri2$Long[eri2$Long>180]-360
+        
+        
+      } else {
+        track2$lon[track2$lon<0] <- 360+track2$lon[track2$lon<0]
+        eoi <- load.NOAA.OISST.V2 (fname = fname.sst,
+                                  lsmask= landmask.location,
+                                  lonW  = 0,
+                                  lonE  = min(track2$lon),
+                                  latS  = min(track2$lat),
+                                  latN  = max(track2$lat),
+                                  date1 = as.Date(paste(track2$year[1],track2$month[1],track2$day[1],sep="-")),
+                                  date2 = as.Date(paste(track2$year[1],track2$month[1],track2$day[1],sep="-")))
+        
+        eii <- load.NOAA.OISST.V2 (fname = fname.ice,
+                                  lsmask= landmask.location,
+                                  lonW  = 0,
+                                  lonE  = min(track2$lon),
+                                  latS  = min(track2$lat),
+                                  latN  = max(track2$lat),
+                                  date1 = as.Date(paste(track2$year[1],track2$month[1],track2$day[1],sep="-")),
+                                  date2 = as.Date(paste(track2$year[1],track2$month[1],track2$day[1],sep="-")),
+                                  extract.value='icec')
+        
+        eri <- load.NOAA.OISST.V2 (fname = fname.err,
+                                  lsmask= landmask.location,
+                                  lonW  = 0,
+                                  lonE  = min(track2$lon),
+                                  latS  = min(track2$lat),
+                                  latN  = max(track2$lat),
+                                  date1 = as.Date(paste(track2$year[1],track2$month[1],track2$day[1],sep="-")),
+                                  date2 = as.Date(paste(track2$year[1],track2$month[1],track2$day[1],sep="-")),
+                                  extract.value='err')
+        
+        
+        eoi2  <-  as.data.frame(as.table(as.matrix(eoi[,,1])))
+        colnames(eoi2) <- c("Lat","Long",'V1') 
+        eii2  <-  as.data.frame(as.table(as.matrix(eii[,,1])))
+        colnames(eii2) <- c("Lat","Long",'V1') 
+        eri2  <-  as.data.frame(as.table(as.matrix(eri[,,1])))
+        colnames(eri2) <- c("Lat","Long",'V1') 
+        
+        eoi <- load.NOAA.OISST.V2 (fname = fname.sst,
+                                  lsmask= landmask.location,
+                                  lonW  = max(track2$lon),
+                                  lonE  = 360,
+                                  latS  = min(track2$lat),
+                                  latN  = max(track2$lat),
+                                  date1 = as.Date(paste(track2$year[1],track2$month[1],track2$day[1],sep="-")),
+                                  date2 = as.Date(paste(track2$year[1],track2$month[1],track2$day[1],sep="-")))
+        
+        eii <- load.NOAA.OISST.V2 (fname = fname.ice,
+                                  lsmask= landmask.location,
+                                  lonW  = max(track2$lon),
+                                  lonE  = 360,
+                                  latS  = min(track2$lat),
+                                  latN  = max(track2$lat),
+                                  date1 = as.Date(paste(track2$year[1],track2$month[1],track2$day[1],sep="-")),
+                                  date2 = as.Date(paste(track2$year[1],track2$month[1],track2$day[1],sep="-")),
+                                  extract.value='icec')
+        
+        eri <- load.NOAA.OISST.V2 (fname = fname.err,
+                                  lsmask= landmask.location,
+                                  lonW  = max(track2$lon),
+                                  lonE  = 360,
+                                  latS  = min(track2$lat),
+                                  latN  = max(track2$lat),
+                                  date1 = as.Date(paste(track2$year[1],track2$month[1],track2$day[1],sep="-")),
+                                  date2 = as.Date(paste(track2$year[1],track2$month[1],track2$day[1],sep="-")),
+                                  extract.value='err')
+        
+        
+        eoi3  <-  as.data.frame(as.table(as.matrix(eoi[,,1])))
+        colnames(eoi3) <- c("Lat","Long",'V1') 
+        eii3  <-  as.data.frame(as.table(as.matrix(eii[,,1])))
+        colnames(eii3) <- c("Lat","Long",'V1') 
+        eri3  <-  as.data.frame(as.table(as.matrix(eri[,,1])))
+        colnames(eri3) <- c("Lat","Long",'V1') 
+        
+        eoi2<-rbind(eoi2,eoi3)
+        eoi2$Lat  <- as.numeric(as.character(eoi2$Lat))
+        eoi2$Long <- as.numeric(as.character(eoi2$Long))
+        eoi2$Long[eoi2$Long>180] <- eoi2$Long[eoi2$Long>180]-360
+        
+        eii2<-rbind(eii2,eii3)
+        eii2$Lat  <- as.numeric(as.character(eii2$Lat))
+        eii2$Long <- as.numeric(as.character(eii2$Long))
+        eii2$Long[eii2$Long>180] <- eii2$Long[eii2$Long>180]-360
+        
+        eri2<-rbind(eri2,eri3)
+        eri2$Lat  <- as.numeric(as.character(eri2$Lat))
+        eri2$Long <- as.numeric(as.character(eri2$Long))
+        eri2$Long[eri2$Long>180] <- eri2$Long[eri2$Long>180]-360
+      }
+      
+      sstdata         <- eoi2
+      sstdata$ice     <- eii2[,3]
+      sstdata$sst.err <- eri2[,3]
+      
+      # remove sst values in pixels with more than ice.conc.cutoff----
+      # except for 2012-8-11 to 2012-8-16 as ice data is fucked up in this period
+      if(as.Date(gr3$date[1])<as.Date("2012-08-11") | as.Date(gr3$date[1])>as.Date("2012-08-16")) sstdata$V1[sstdata$ice > ice.conc.cutoff] <-NA
+      
+      # rasterize sat data-----
+      min.lat.sst   <- floor(min(sstdata$Lat))
+      max.lat.sst   <- ceiling(max(sstdata$Lat))
+      min.lon.sst   <- floor(min(sstdata$Lon))
+      max.lon.sst   <- ceiling(max(sstdata$Lon))
+      
+      if(min.lat.sst<(-90)) min.lat.sst=(-90)
+      if(max.lat.sst>( 90)) max.lat.sst=( 90)
+      if(min.lon.sst<(-180)) min.lon.sst=(-180)
+      if(max.lon.sst>( 180)) max.lon.sst=( 180)
+      
+      r <- raster(xmn=min.lon.sst,xmx=max.lon.sst,
+                  ymn=min.lat.sst,ymx=max.lat.sst,
+                  crs=CRS(proj.latlon),
+                  resolution=c(0.25,0.25))
+      
+      coordinates(sstdata)                    <- cbind(sstdata[,2],sstdata[,1])
+      proj4string(sstdata)                    <- proj4string(gr3)
+      sstdata$V1[is.na(sstdata$V1)]           <- c(-10)
+      sstdata$sst.err[is.na(sstdata$sst.err)] <- c(0)
+      sstdata$ice[is.na(sstdata$ice)]         <- c(0)
+      
+      sstd <- rasterize(sstdata,r,'V1')
+      errd <- rasterize(sstdata,r,'sst.err')
+      iced <- rasterize(sstdata,r,'ice')
       
       
-      eoi <- load.NOAA.OISST.V2 (fname = fname.sst,
-                                lsmask= landmask.location,
-                                lonW  = min(track2$lon),
-                                lonE  = max(track2$lon),
-                                latS  = min(track2$lat),
-                                latN  = max(track2$lat),
-                                date1 = as.Date(paste(track2$year[1],track2$month[1],track2$day[1],sep="-")),
-                                date2 = as.Date(paste(track2$year[1],track2$month[1],track2$day[1],sep="-")),
-                                extract.value='sst')
+      # extract satellite SSt and tag sst for each particle and calculate difference----
+      gr3$sat.ice      <- extract(iced,gr3)
+      gr3$sat.sst      <- extract(sstd,gr3)
+      gr3$sat.sst.err  <- extract(errd,gr3)
+      if(length(sensor$SST[sensor$jday==gr3$jday2[1]])>0)  gr3$tag.sst <- sensor$SST[sensor$jday==gr3$jday2[1]]
+      if(length(sensor$SST[sensor$jday==gr3$jday2[1]])==0) gr3$tag.sst <- NA
+      gr3$sat.sst[gr3$sat.sst==c(-10)]      <- NA
+      gr3$sat.sst.err[is.na(gr3$sat.sst)]   <- NA
       
-      eii <- load.NOAA.OISST.V2 (fname = fname.ice,
-                                lsmask= landmask.location,
-                                lonW  = min(track2$lon),
-                                lonE  = max(track2$lon),
-                                latS  = min(track2$lat),
-                                latN  = max(track2$lat),
-                                date1 = as.Date(paste(track2$year[1],track2$month[1],track2$day[1],sep="-")),
-                                date2 = as.Date(paste(track2$year[1],track2$month[1],track2$day[1],sep="-")),
-                                extract.value='icec')
-      
-      eri <- load.NOAA.OISST.V2 (fname = fname.err,
-                                lsmask= landmask.location,
-                                lonW  = min(track2$lon),
-                                lonE  = max(track2$lon),
-                                latS  = min(track2$lat),
-                                latN  = max(track2$lat),
-                                date1 = as.Date(paste(track2$year[1],track2$month[1],track2$day[1],sep="-")),
-                                date2 = as.Date(paste(track2$year[1],track2$month[1],track2$day[1],sep="-")),
-                                extract.value='err')
-      
-      
-      
-      eoi2  <-  as.data.frame(as.table(as.matrix(eoi[,,1])))
-      colnames(eoi2) <- c("Lat","Long",'V1') 
-      eoi2$Lat  <- as.numeric(as.character(eoi2$Lat))
-      eoi2$Long <- as.numeric(as.character(eoi2$Long))
-      eoi2$Long[eoi2$Long>180] <- eoi2$Long[eoi2$Long>180]-360
-      
-      eii2  <-  as.data.frame(as.table(as.matrix(eii[,,1])))
-      colnames(eii2) <- c("Lat","Long",'V1') 
-      eii2$Lat  <- as.numeric(as.character(eii2$Lat))
-      eii2$Long <- as.numeric(as.character(eii2$Long))
-      eii2$Long[eii2$Long>180] <- eii2$Long[eii2$Long>180]-360
-      
-      eri2  <-  as.data.frame(as.table(as.matrix(eri[,,1])))
-      colnames(eri2) <- c("Lat","Long",'V1') 
-      eri2$Lat  <- as.numeric(as.character(eri2$Lat))
-      eri2$Long <- as.numeric(as.character(eri2$Long))
-      eri2$Long[eri2$Long>180] <- eri2$Long[eri2$Long>180]-360
-      
-      
-    } else {
-      track2$lon[track2$lon<0] <- 360+track2$lon[track2$lon<0]
-      eoi <- load.NOAA.OISST.V2 (fname = fname.sst,
-                                lsmask= landmask.location,
-                                lonW  = 0,
-                                lonE  = min(track2$lon),
-                                latS  = min(track2$lat),
-                                latN  = max(track2$lat),
-                                date1 = as.Date(paste(track2$year[1],track2$month[1],track2$day[1],sep="-")),
-                                date2 = as.Date(paste(track2$year[1],track2$month[1],track2$day[1],sep="-")))
-      
-      eii <- load.NOAA.OISST.V2 (fname = fname.ice,
-                                lsmask= landmask.location,
-                                lonW  = 0,
-                                lonE  = min(track2$lon),
-                                latS  = min(track2$lat),
-                                latN  = max(track2$lat),
-                                date1 = as.Date(paste(track2$year[1],track2$month[1],track2$day[1],sep="-")),
-                                date2 = as.Date(paste(track2$year[1],track2$month[1],track2$day[1],sep="-")),
-                                extract.value='icec')
-      
-      eri <- load.NOAA.OISST.V2 (fname = fname.err,
-                                lsmask= landmask.location,
-                                lonW  = 0,
-                                lonE  = min(track2$lon),
-                                latS  = min(track2$lat),
-                                latN  = max(track2$lat),
-                                date1 = as.Date(paste(track2$year[1],track2$month[1],track2$day[1],sep="-")),
-                                date2 = as.Date(paste(track2$year[1],track2$month[1],track2$day[1],sep="-")),
-                                extract.value='err')
-      
-      
-      eoi2  <-  as.data.frame(as.table(as.matrix(eoi[,,1])))
-      colnames(eoi2) <- c("Lat","Long",'V1') 
-      eii2  <-  as.data.frame(as.table(as.matrix(eii[,,1])))
-      colnames(eii2) <- c("Lat","Long",'V1') 
-      eri2  <-  as.data.frame(as.table(as.matrix(eri[,,1])))
-      colnames(eri2) <- c("Lat","Long",'V1') 
-      
-      eoi <- load.NOAA.OISST.V2 (fname = fname.sst,
-                                lsmask= landmask.location,
-                                lonW  = max(track2$lon),
-                                lonE  = 360,
-                                latS  = min(track2$lat),
-                                latN  = max(track2$lat),
-                                date1 = as.Date(paste(track2$year[1],track2$month[1],track2$day[1],sep="-")),
-                                date2 = as.Date(paste(track2$year[1],track2$month[1],track2$day[1],sep="-")))
-      
-      eii <- load.NOAA.OISST.V2 (fname = fname.ice,
-                                lsmask= landmask.location,
-                                lonW  = max(track2$lon),
-                                lonE  = 360,
-                                latS  = min(track2$lat),
-                                latN  = max(track2$lat),
-                                date1 = as.Date(paste(track2$year[1],track2$month[1],track2$day[1],sep="-")),
-                                date2 = as.Date(paste(track2$year[1],track2$month[1],track2$day[1],sep="-")),
-                                extract.value='icec')
-      
-      eri <- load.NOAA.OISST.V2 (fname = fname.err,
-                                lsmask= landmask.location,
-                                lonW  = max(track2$lon),
-                                lonE  = 360,
-                                latS  = min(track2$lat),
-                                latN  = max(track2$lat),
-                                date1 = as.Date(paste(track2$year[1],track2$month[1],track2$day[1],sep="-")),
-                                date2 = as.Date(paste(track2$year[1],track2$month[1],track2$day[1],sep="-")),
-                                extract.value='err')
-      
-      
-      eoi3  <-  as.data.frame(as.table(as.matrix(eoi[,,1])))
-      colnames(eoi3) <- c("Lat","Long",'V1') 
-      eii3  <-  as.data.frame(as.table(as.matrix(eii[,,1])))
-      colnames(eii3) <- c("Lat","Long",'V1') 
-      eri3  <-  as.data.frame(as.table(as.matrix(eri[,,1])))
-      colnames(eri3) <- c("Lat","Long",'V1') 
-      
-      eoi2<-rbind(eoi2,eoi3)
-      eoi2$Lat  <- as.numeric(as.character(eoi2$Lat))
-      eoi2$Long <- as.numeric(as.character(eoi2$Long))
-      eoi2$Long[eoi2$Long>180] <- eoi2$Long[eoi2$Long>180]-360
-      
-      eii2<-rbind(eii2,eii3)
-      eii2$Lat  <- as.numeric(as.character(eii2$Lat))
-      eii2$Long <- as.numeric(as.character(eii2$Long))
-      eii2$Long[eii2$Long>180] <- eii2$Long[eii2$Long>180]-360
-      
-      eri2<-rbind(eri2,eri3)
-      eri2$Lat  <- as.numeric(as.character(eri2$Lat))
-      eri2$Long <- as.numeric(as.character(eri2$Long))
-      eri2$Long[eri2$Long>180] <- eri2$Long[eri2$Long>180]-360
+    } 
+    if( is.null(sensor)){
+      gr3$sat.ice      <- 0
+      gr3$sat.sst      <- NA
+      gr3$sat.sst.err  <- NA
+      gr3$tag.sst      <- NA
     }
     
-    sstdata         <- eoi2
-    sstdata$ice     <- eii2[,3]
-    sstdata$sst.err <- eri2[,3]
-    
-    # remove sst values in pixels with more than ice.conc.cutoff----
-    # except for 2012-8-11 to 2012-8-16 as ice data is fucked up in this period
-    if(as.Date(gr3$date[1])<as.Date("2012-08-11") | as.Date(gr3$date[1])>as.Date("2012-08-16")) sstdata$V1[sstdata$ice > ice.conc.cutoff] <-NA
-    
-    # rasterize sat data-----
-    min.lat.sst   <- floor(min(sstdata$Lat))
-    max.lat.sst   <- ceiling(max(sstdata$Lat))
-    min.lon.sst   <- floor(min(sstdata$Lon))
-    max.lon.sst   <- ceiling(max(sstdata$Lon))
-    
-    if(min.lat.sst<(-90)) min.lat.sst=(-90)
-    if(max.lat.sst>( 90)) max.lat.sst=( 90)
-    if(min.lon.sst<(-180)) min.lon.sst=(-180)
-    if(max.lon.sst>( 180)) max.lon.sst=( 180)
-    
-    r <- raster(xmn=min.lon.sst,xmx=max.lon.sst,
-                ymn=min.lat.sst,ymx=max.lat.sst,
-                crs=CRS(proj.latlon),
-                resolution=c(0.25,0.25))
-    
-    coordinates(sstdata)                    <- cbind(sstdata[,2],sstdata[,1])
-    proj4string(sstdata)                    <- proj4string(gr3)
-    sstdata$V1[is.na(sstdata$V1)]           <- c(-10)
-    sstdata$sst.err[is.na(sstdata$sst.err)] <- c(0)
-    sstdata$ice[is.na(sstdata$ice)]         <- c(0)
-    
-    sstd <- rasterize(sstdata,r,'V1')
-    errd <- rasterize(sstdata,r,'sst.err')
-    iced <- rasterize(sstdata,r,'ice')
-    
-    
-    # extract satellite SSt and tag sst for each particle and calculate difference----
-    gr3$sat.ice      <- extract(iced,gr3)
-    gr3$sat.sst      <- extract(sstd,gr3)
-    gr3$sat.sst.err  <- extract(errd,gr3)
-    if(length(sensor$SST[sensor$jday==gr3$jday2[1]])>0)  gr3$tag.sst <- sensor$SST[sensor$jday==gr3$jday2[1]]
-    if(length(sensor$SST[sensor$jday==gr3$jday2[1]])==0) gr3$tag.sst <- NA
-    gr3$sat.sst[gr3$sat.sst==c(-10)]      <- NA
-    gr3$sat.sst.err[is.na(gr3$sat.sst)]   <- NA
     gr3$sst.diff     <- gr3$sat.sst-gr3$tag.sst
     
     
@@ -636,8 +659,6 @@ for(ts in steps){
     
     
     # weigh each particle according to speed and SST
-    fun.gsst   <- function(x) {   dnorm(x$sst.diff, mean = 0, sd = sst.sd+x$sat.sst.err)/
-                                  max(dnorm(0     , mean = 0, sd = sst.sd+x$sat.sst.err),na.rm=T)}
     
     fun.gspeed <- function(x) {      dnorm(x$gspeed,
                                            mean = c((speed.dry[1]*x$time.dry)+(speed.wet[1]*(1-x$time.dry))),
@@ -646,25 +667,31 @@ for(ts in steps){
                                            mean = c((speed.dry[1]*x$time.dry)+(speed.wet[1]*(1-x$time.dry))),
                                            sd   = c((speed.dry[2]*x$time.dry)+(speed.wet[2]*(1-x$time.dry)))),na.rm=T)}
     
-    
-    
-    wsst   <- lapply(gr2,fun.gsst)
     wspeed <- lapply(gr2,fun.gspeed)
-    gr2    <- mapply(cbind,gr2,wspeed=wspeed,wsst=wsst, SIMPLIFY = FALSE)
+    
+    
+    fun.gsst   <- function(x) {   dnorm(x$sst.diff, mean = 0, sd = sst.sd+x$sat.sst.err)/
+        max(dnorm(0     , mean = 0, sd = sst.sd+x$sat.sst.err),na.rm=T)}
+    
+    wsst <- lapply(gr2,fun.gsst)
+    
+    
+    gr2    <- mapply(cbind, gr2, wspeed = wspeed, wsst = wsst, SIMPLIFY = FALSE)
+    
+    
     gr2    <- lapply(gr2, function(x) {x$wspeed[x$gspeed<= c(speed.dry[1]*x$time.dry+speed.wet[1]*(1-x$time.dry))]<-1 
                                        x$wspeed[x$gspeed< 0]<-0
-                                       x$wspeed[x$gspeed>  c(speed.dry[3]*x$time.dry+speed.wet[3]*(1-x$time.dry))]<-0 
-                                       x$wspeed[x$sat.ice >ice.conc.cutoff]<-0 
-                                       x$wsst  [x$sst.diff>  max.sst.diff ]<-0 
-                                       x$wsst  [x$sst.diff<(-max.sst.diff)]<-0 
-                                       x$wsst  [is.na(x$wsst)]<-0 
-                                       
+                                       x$wspeed[x$gspeed> c(speed.dry[3]*x$time.dry+speed.wet[3]*(1-x$time.dry))]<-0 
+                                       x$wspeed[x$sat.ice >ice.conc.cutoff]<- 0 
+                                       x$wsst  [x$sst.diff>  max.sst.diff ]<- 0 
+                                       x$wsst  [x$sst.diff<(-max.sst.diff)]<- 0 
+                                       x$wsst  [is.na(x$wsst)]<- 0 
                                        return(x)})
     
     
     # if no tag.SST available only use speed weighing----
-    if(is.na(gr3$tag.sst[1])==F) gselect  <- lapply(gr2,function(x) x$wspeed*x$wsst)
-    if(is.na(gr3$tag.sst[1])==T) gselect  <- lapply(gr2,function(x) x$wspeed)
+    if(!is.na(gr3$tag.sst[1])) gselect  <- lapply(gr2,function(x) x$wspeed * x$wsst)
+    if( is.na(gr3$tag.sst[1])) gselect  <- lapply(gr2,function(x) x$wspeed)
     gr2      <- mapply(cbind,gr2,grel=gselect, SIMPLIFY = FALSE)
     
     
@@ -714,9 +741,9 @@ for(ts in steps){
       
         new.r2[[botts]]  <- subset(data.frame(new.r[[botts]]),select=names(empty.spdf))
       } else {
-        new.r[[botts]]   <- empty.spdf
+        new.r [[botts]]  <- empty.spdf
         new.r2[[botts]]  <- subset(data.frame(new.r[[botts]]),select=names(empty.spdf))
-        new.r[[botts]]   <- colt[[botts]]
+        new.r [[botts]]  <- colt[[botts]]
       }
     }
     
@@ -733,13 +760,23 @@ for(ts in steps){
   step.end  <- Sys.time()
   step.time <- step.end - step.start
   
-  cat(paste(as.Date(gr3$dtime)[1],'  -  ',ts," of ",length(unique(grr$step)),' steps  -  ',round(step.time,2),' sec',sep=""),'\r')  
+  cat(paste(as.Date(gr3$dtime)[1],'  -  ',iter," of ",length(unique(grr$step)),' steps  -  ',round(step.time,2),' sec',sep=""),'\r')  
 }
 
 # remove all empty steps
-newt2              <- newt2[newt2$wrel<2,]
+newt2              <- newt2[newt2$wrel<=1,]
+newt2              <- as.data.frame(newt2)
 
-coordinates(newt2) <- cbind(newt2$lon,newt2$lat)
+#remove NAs in lat and lon
+newt2$lon <- as.numeric(newt2$lon)
+newt2$lat <- as.numeric(newt2$lat)
+newt2              <- newt2[!is.na(newt2$lon),]
+newt2              <- newt2[!is.na(newt2$lat),]
+
+if(is.null(sensor)) newt2$sat.ice <- NA
+
+#coordinates(newt2) <- c(newt2$lon,newt2$lat)
+coordinates(newt2) <- c('lon','lat')
 proj4string(newt2) <- CRS(proj.latlon)
 newt2$dtime        <- as.POSIXct(newt2$dtime  ,origin="1970-01-01",tz="UTC")
 newt2$tFirst       <- as.POSIXct(newt2$tFirst ,origin="1970-01-01",tz="UTC")

@@ -4,6 +4,15 @@
 #' @param trnfile the trn file to be transformed
 #' @return A data.frame for further use in GeoLight or probGLS
 #' @return modified after trnTrans() in GeoLight by Tamara Emmenegger
+#' @examples
+#'###########################################
+#'# example black browed albatross light data 
+#'###########################################
+#' 
+#'# light data ----
+#'trn           <- twilightCalc(BBA_lux$dtime, BBA_lux$lig, ask = FALSE, LightThreshold = 2)
+#'
+#'summary(trn)
 #' @export
 
 trn_to_dataframe<-function(trnfile){

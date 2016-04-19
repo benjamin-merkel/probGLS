@@ -19,4 +19,14 @@ SST deduction from logger temperature reading
 \details{
 only works with temp data that are recorded while the logger is submerged in seawater
 }
+\examples{
+#################################################
+# example black browed albatross temperature data 
+#################################################
+
+# sst data ----
+sen           <- sst_deduction(datetime = BBA_sst$dtime, temp = BBA_sst$temp, temp.range = c(-2,30))
+
+summary(sen)
+}
 

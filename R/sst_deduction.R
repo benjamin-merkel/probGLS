@@ -5,11 +5,23 @@
 #' @param temp temperature readings 
 #' @param temp.range min and max of temperature range
 #' @details only works with temp data that are recorded while the logger is submerged in seawater
+#' @examples
+#'#################################################
+#'# example black browed albatross temperature data 
+#'#################################################
+#' 
+#'# sst data ----
+#'sen           <- sst_deduction(datetime = BBA_sst$dtime, temp = BBA_sst$temp, temp.range = c(-2,30))
+#'
+#'summary(sen)
 #' @export
 
 
 
 sst_deduction <- function(datetime,temp,temp.range=c(-2,30)){
+  
+  #appease R CMD check
+  SST <- SST.remove <- NULL
   
   data       <- data.frame(datetime,temp)
   data$dtime <- as.POSIXct(data$datetime,tz="UTC")
@@ -22,10 +34,6 @@ sst_deduction <- function(datetime,temp,temp.range=c(-2,30)){
   colnames(temp) <- "SST"
   temp           <- cbind(date=as.Date(rownames(temp)),temp)
   
-  temp$doy              <- as.numeric(strftime(temp$date, format = "%j"))
-  temp$month            <- as.numeric(strftime(temp$date, format = "%m"))
-  temp$year             <- as.numeric(strftime(temp$date, format = "%Y"))
-  temp$jday             <- as.numeric(julian(temp$date))
   temp$sst.step.before  <- temp$SST-c(NA,temp$SST[1:(nrow(temp)-1)])
   temp$sst.step.after   <- temp$SST-c(temp$SST[2:(nrow(temp))],NA)
   temp$sst.diff         <- temp$sst.step.before*temp$sst.step.after
@@ -35,6 +43,6 @@ sst_deduction <- function(datetime,temp,temp.range=c(-2,30)){
   
   temp$SST.remove[temp$sst.diff2>12] <- T
   
-  output <- subset(temp,select=c(date,doy,month,year,jday,SST,SST.remove))
+  output <- subset(temp,select=c(date,SST,SST.remove))
   
 }

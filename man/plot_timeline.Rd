@@ -4,12 +4,14 @@
 \alias{plot_timeline}
 \title{plot timeline of algorithm output}
 \usage{
-plot_timeline(pr, degElevation = NULL)
+plot_timeline(pr, degElevation = NULL, SST = T)
 }
 \arguments{
 \item{pr}{probGLS algorithm output}
 
 \item{degElevation}{sun elevation angle for comparison threshold method, if NULL no threshold positions are plotted}
+
+\item{SST}{if T, plot SST; if F do not plot SST}
 }
 \description{
 plot timeline of algorithm output

@@ -2,6 +2,7 @@
 #' 
 #' plot map of algorithm output
 #' @param pr probGLS algorithm output
+#' @import maps
 #' @export
 
 

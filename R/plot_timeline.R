@@ -3,11 +3,12 @@
 #' plot timeline of algorithm output
 #' @param pr probGLS algorithm output
 #' @param degElevation sun elevation angle for comparison threshold method, if NULL no threshold positions are plotted
+#' @param SST if T, plot SST; if F do not plot SST
 #' @export
 
 
 
-plot_timeline <- function(pr,degElevation=NULL){
+plot_timeline <- function(pr,degElevation=NULL,SST=T){
   
   
   if(!is.null(degElevation)){
@@ -39,29 +40,48 @@ plot_timeline <- function(pr,degElevation=NULL){
     return(polyf)
   }
   
-  par(mfrow=c(3,1),mar=c(0,4,0,0))
-  plot(pr[[1]]$jday,pr[[1]]$lat,col='white',xaxt="n",ylab="Latitude")
-  polygon(poly.frame(pr[[1]]$jday,pr[[1]]$lat,0.75,0.25),col=rgb(1,0,0,alpha=0.3) ,border=NA)
-  polygon(poly.frame(pr[[1]]$jday,pr[[1]]$lat,0.95,0.05),col=rgb(1,0,0,alpha=0.3) ,border=NA)
-  lines(pr[[2]]$jday,pr[[2]]$lat,col='darkred',lwd=1,type="o",cex=0.5)
-  if(!is.null(degElevation)) lines(ho2$jday,ho2$lat,lwd=1,type="o",cex=0.5)
-  abline(v=c(jse1,jse2),lty=3,col="green")
-  abline(v=c(jfe1,jfe2),lty=3,col="blue")
-  
-  plot(pr[[1]]$jday,pr[[1]]$lon,col='white',xaxt="n",ylab="Longitude")
-  polygon(poly.frame(pr[[1]]$jday,pr[[1]]$lon,0.75,0.25),col=rgb(1,0,0,alpha=0.3) ,border=NA)
-  polygon(poly.frame(pr[[1]]$jday,pr[[1]]$lon,0.95,0.05),col=rgb(1,0,0,alpha=0.3) ,border=NA)
-  lines(pr[[2]]$jday,pr[[2]]$lon,col='darkred',lwd=1,type="o",cex=0.5)
-  if(!is.null(degElevation)) lines(ho2$jday,ho2$lon,lwd=1,type="o",cex=0.5)
-  
-  par(mar=c(2,4,0,0))
-  plot  (pr[[1]]$jday,pr[[1]]$sat.sst,col="white",ylab="SST",xaxt="n")
-  polygon(poly.frame(pr[[1]]$jday,pr[[1]]$sat.sst,0.75,0.25),col=rgb(1,0,0,alpha=0.3) ,border=NA)
-  polygon(poly.frame(pr[[1]]$jday,pr[[1]]$sat.sst,0.95,0.05),col=rgb(1,0,0,alpha=0.3) ,border=NA)
-  points(pr[[2]]$jday,pr[[2]]$median.sat.sst,type='o',lwd=1,col="darkred",cex=0.5)
-  points(pr[[2]]$jday,pr[[2]]$tag.sst,type='o',lwd=1,cex=0.5)
-  axis(1,at=floor(pr[[2]]$jday),labels=as.Date(floor(pr[[2]]$jday),origin="1970-01-01"))
-  
+  if(SST==T){
+    par(mfrow=c(3,1),mar=c(0,4,0,0))
+    plot(pr[[1]]$jday,pr[[1]]$lat,col='white',xaxt="n",ylab="Latitude")
+    polygon(poly.frame(pr[[1]]$jday,pr[[1]]$lat,0.75,0.25),col=rgb(1,0,0,alpha=0.3) ,border=NA)
+    polygon(poly.frame(pr[[1]]$jday,pr[[1]]$lat,0.95,0.05),col=rgb(1,0,0,alpha=0.3) ,border=NA)
+    lines(pr[[2]]$jday,pr[[2]]$lat,col='darkred',lwd=1,type="o",cex=0.5)
+    if(!is.null(degElevation)) lines(ho2$jday,ho2$lat,lwd=1,type="o",cex=0.5)
+    abline(v=c(jse1,jse2),lty=3,col="green")
+    abline(v=c(jfe1,jfe2),lty=3,col="blue")
+    
+    plot(pr[[1]]$jday,pr[[1]]$lon,col='white',xaxt="n",ylab="Longitude")
+    polygon(poly.frame(pr[[1]]$jday,pr[[1]]$lon,0.75,0.25),col=rgb(1,0,0,alpha=0.3) ,border=NA)
+    polygon(poly.frame(pr[[1]]$jday,pr[[1]]$lon,0.95,0.05),col=rgb(1,0,0,alpha=0.3) ,border=NA)
+    lines(pr[[2]]$jday,pr[[2]]$lon,col='darkred',lwd=1,type="o",cex=0.5)
+    if(!is.null(degElevation)) lines(ho2$jday,ho2$lon,lwd=1,type="o",cex=0.5)
+    
+    par(mar=c(2,4,0,0))
+    plot  (pr[[1]]$jday,pr[[1]]$sat.sst,col="white",ylab="SST",xaxt="n")
+    polygon(poly.frame(pr[[1]]$jday,pr[[1]]$sat.sst,0.75,0.25),col=rgb(1,0,0,alpha=0.3) ,border=NA)
+    polygon(poly.frame(pr[[1]]$jday,pr[[1]]$sat.sst,0.95,0.05),col=rgb(1,0,0,alpha=0.3) ,border=NA)
+    points(pr[[2]]$jday,pr[[2]]$median.sat.sst,type='o',lwd=1,col="darkred",cex=0.5)
+    points(pr[[2]]$jday,pr[[2]]$tag.sst,type='o',lwd=1,cex=0.5)
+    axis(1,at=floor(pr[[2]]$jday),labels=as.Date(floor(pr[[2]]$jday),origin="1970-01-01"))
+  }
+  if(SST==F){
+    par(mfrow=c(2,1),mar=c(0,4,0,0))
+    plot(pr[[1]]$jday,pr[[1]]$lat,col='white',xaxt="n",ylab="Latitude")
+    polygon(poly.frame(pr[[1]]$jday,pr[[1]]$lat,0.75,0.25),col=rgb(1,0,0,alpha=0.3) ,border=NA)
+    polygon(poly.frame(pr[[1]]$jday,pr[[1]]$lat,0.95,0.05),col=rgb(1,0,0,alpha=0.3) ,border=NA)
+    lines(pr[[2]]$jday,pr[[2]]$lat,col='darkred',lwd=1,type="o",cex=0.5)
+    if(!is.null(degElevation)) lines(ho2$jday,ho2$lat,lwd=1,type="o",cex=0.5)
+    abline(v=c(jse1,jse2),lty=3,col="green")
+    abline(v=c(jfe1,jfe2),lty=3,col="blue")
+    
+    par(mar=c(2,4,0,0))
+    plot(pr[[1]]$jday,pr[[1]]$lon,col='white',xaxt="n",ylab="Longitude")
+    polygon(poly.frame(pr[[1]]$jday,pr[[1]]$lon,0.75,0.25),col=rgb(1,0,0,alpha=0.3) ,border=NA)
+    polygon(poly.frame(pr[[1]]$jday,pr[[1]]$lon,0.95,0.05),col=rgb(1,0,0,alpha=0.3) ,border=NA)
+    lines(pr[[2]]$jday,pr[[2]]$lon,col='darkred',lwd=1,type="o",cex=0.5)
+    if(!is.null(degElevation)) lines(ho2$jday,ho2$lon,lwd=1,type="o",cex=0.5)
+    axis(1,at=floor(pr[[2]]$jday),labels=as.Date(floor(pr[[2]]$jday),origin="1970-01-01"))
+  }
   par(mfrow=c(1,1),mar=c(4,4,2,2)) 
   
 }

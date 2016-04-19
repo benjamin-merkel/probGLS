@@ -68,6 +68,8 @@ prob_algorithm(particle.number = 2000, iteration.number = 60,
 
 \item{wetdry.resolution}{sampling rate of conductivity switch in sec (e.g. MK15 & MK3006 sample every 3 sec)}
 
+\item{backward}{run algorithm from end to start}
+
 \item{NOAA.OI.location}{directory location of NOAA OI V2 NCDF files as well as land mask file 'lsmask.oisst.v2.nc' (downloadable from http://www.esrl.noaa.gov/psd/data/gridded/data.noaa.oisst.v2.highres.html)}
 }
 \value{
@@ -85,11 +87,11 @@ Many weighting parameters can be used. Some others (which are not yet implemente
 ######################################
 
 # define start and end datetimes ----
-start <- as.POSIXct("2014-12-13 17:55",tz="UTC")
-end   <- as.POSIXct("2014-12-22 08:55",tz="UTC")
+start <- as.POSIXct("2014-12-13 17:55", tz="UTC")
+end   <- as.POSIXct("2014-12-22 08:55", tz="UTC")
 
 # light data ----
-trn           <- twilightCalc(BBA_lux$dtime,BBA_lux$lig,ask=F,LightThreshold = 2)
+trn           <- twilightCalc(BBA_lux$dtime, BBA_lux$lig, ask = FALSE, LightThreshold = 2)
 
 # sst data ----
 sen           <- sst_deduction(datetime = BBA_sst$dtime, temp = BBA_sst$temp, temp.range = c(-2,30))
@@ -131,7 +133,7 @@ pr   <- prob_algorithm(trn                         = trn,
                       speed.wet                   = c(1,1.3,5), 
                       sst.sd                      = 0.5,       
                       max.sst.diff                = 3,          
-                      east.west.comp              = T, 
+                      east.west.comp              = TRUE, 
                       ice.conc.cutoff             = 1, 
                       wetdry.resolution           = 1,
                       NOAA.OI.location            = "folder with environmental data and land mask")

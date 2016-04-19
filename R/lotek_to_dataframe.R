@@ -12,6 +12,9 @@
 
 lotek_to_dataframe<-function(date,sunrise,sunset,TRLon,TRLat){
   
+  #appease R CMD check
+  V2 <- NULL
+  
   data <- data.frame(date,sunrise,sunset,TRLon,TRLat)
   
   data$TRLon[data$TRLon==200] <- NA
@@ -43,8 +46,8 @@ lotek_to_dataframe<-function(date,sunrise,sunset,TRLon,TRLat){
   
   times         <- data.frame(tFirst = data$sunrise2)
   times$tSecond <- data$sunset2
-  times$tFirst  <- twilight(tm = times$tFirst , lon = data$TRLon, lat = data$TRLat, rise = TRUE , zenith = 93.44,iter=5) 
-  times$tSecond <- twilight(tm = times$tSecond, lon = data$TRLon, lat = data$TRLat, rise = FALSE, zenith = 93.44,iter=5)
+  times$tFirst  <- twilight(tm = times$tFirst , lon = data$TRLon, lat = data$TRLat, rise = TRUE , zenith = 93.44, iters = 5) 
+  times$tSecond <- twilight(tm = times$tSecond, lon = data$TRLon, lat = data$TRLat, rise = FALSE, zenith = 93.44, iters = 5)
   
   tl                               <- nrow(times)
   data2                            <- rbind(times,times)
@@ -55,9 +58,9 @@ lotek_to_dataframe<-function(date,sunrise,sunset,TRLon,TRLat){
   data2                            <- data2[order(data2$V1),]
   data2$dtime                      <- as.Date(data2$V1)
   
-  tFirst  <- vector("numeric",length=(nrow(data2)-1))
-  tSecond <- vector("numeric",length=(nrow(data2)-1))
-  type    <- vector("numeric",length=(nrow(data2)-1))
+  tFirst  <- vector("numeric", length = (nrow(data2)-1))
+  tSecond <- vector("numeric", length = (nrow(data2)-1))
+  type    <- vector("numeric", length = (nrow(data2)-1))
   
   for (idata in 1:(nrow(data2)-1)){
     tFirst[idata]  <- data2$V1[idata]
