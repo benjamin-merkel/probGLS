@@ -1,2 +1,2 @@
-# ProMM
-probabilistic movement model for geolocation data
+# probGLS
+probabilistic algorithm for geolocation data
