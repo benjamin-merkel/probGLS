@@ -60,7 +60,7 @@ prob_algorithm(particle.number = 2000, iteration.number = 60,
 
 \item{east.west.comp}{if T apply biotrack east west movement compensation (Biotrack manual v11 page 31pp.)}
 
-\item{sensor}{data.frame with daily SST data deduced from tag temperature readings (sst_deduction ouput)}
+\item{sensor}{data.frame with daily SST data deduced from tag temperature readings (sst_deduction ouput), NULLif no SST data is available (SST will not be used)}
 
 \item{trn}{data.frame containing twilights and at least tFirst, tSecond and type (same as computed by trn_to_dataframe, ipe_to_dataframe or lotek_to_dataframe)}
 

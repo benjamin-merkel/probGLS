@@ -23,7 +23,7 @@
 #' @param caspian.sea if T classifiy caspian sea as land   
 #' @param land.mask if T animal is only using ocean areas, if F animal is only using land areas, if NULL no land mask used
 #' @param east.west.comp if T apply biotrack east west movement compensation (Biotrack manual v11 page 31pp.)
-#' @param sensor data.frame with daily SST data deduced from tag temperature readings (sst_deduction ouput)
+#' @param sensor data.frame with daily SST data deduced from tag temperature readings (sst_deduction ouput), NULLif no SST data is available (SST will not be used)
 #' @param trn data.frame containing twilights and at least tFirst, tSecond and type (same as computed by trn_to_dataframe, ipe_to_dataframe or lotek_to_dataframe)
 #' @param act data.frame containing wet dry data (e.g. .act file from Biotrack loggers or .deg file from migrate tech loggers), NULL if no wetdry data is available (algorithm will assume that the logger was always dry)
 #' @param wetdry.resolution sampling rate of conductivity switch in sec (e.g. MK15 & MK3006 sample every 3 sec)
@@ -642,8 +642,8 @@ for(ts in steps){
     } 
     if( is.null(sensor)){
       gr3$sat.ice      <- 0
-      gr3$sat.sst      <- NA
-      gr3$sat.sst.err  <- NA
+      gr3$sat.sst      <- 0
+      gr3$sat.sst.err  <- 0
       gr3$tag.sst      <- NA
     }
     
@@ -671,7 +671,7 @@ for(ts in steps){
     
     
     fun.gsst   <- function(x) {   dnorm(x$sst.diff, mean = 0, sd = sst.sd+x$sat.sst.err)/
-        max(dnorm(0     , mean = 0, sd = sst.sd+x$sat.sst.err),na.rm=T)}
+                              max(dnorm(0     , mean = 0, sd = sst.sd+x$sat.sst.err),na.rm=T)}
     
     wsst <- lapply(gr2,fun.gsst)
     
@@ -763,9 +763,11 @@ for(ts in steps){
   cat(paste(as.Date(gr3$dtime)[1],'  -  ',iter," of ",length(unique(grr$step)),' steps  -  ',round(step.time,2),' sec',sep=""),'\r')  
 }
 
+
 # remove all empty steps
 newt2              <- newt2[newt2$wrel<=1,]
 newt2              <- as.data.frame(newt2)
+
 
 #remove NAs in lat and lon
 newt2$lon <- as.numeric(newt2$lon)
@@ -773,7 +775,12 @@ newt2$lat <- as.numeric(newt2$lat)
 newt2              <- newt2[!is.na(newt2$lon),]
 newt2              <- newt2[!is.na(newt2$lat),]
 
-if(is.null(sensor)) newt2$sat.ice <- NA
+if(is.null(sensor)) {
+  newt2$sat.ice     <- NA
+  newt2$sat.sst     <- NA
+  newt2$sat.sst.err <- NA
+  newt2$sst.diff    <- NA
+}
 
 #coordinates(newt2) <- c(newt2$lon,newt2$lat)
 coordinates(newt2) <- c('lon','lat')
@@ -800,7 +807,7 @@ for(i in unique(newt2$step)){
 end.time   <- Sys.time()
 time.taken <- abs(difftime(end.time,start.time,units="mins"))
 
-cat(paste('model run time:',round(as.numeric(time.taken),1),'min',sep=" "),'\n')
+cat(paste('algorithm run time:',round(as.numeric(time.taken),1),'min',sep=" "),'\n')
 
 list.all            <- list(newt2,newg,all.particles,model.input,time.taken)
 names(list.all)     <- c('all tracks','most probable track','all possible particles','input parameters','model run time') 
