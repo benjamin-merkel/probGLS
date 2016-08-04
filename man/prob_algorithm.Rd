@@ -6,13 +6,14 @@
 \usage{
 prob_algorithm(particle.number = 2000, iteration.number = 60,
   loess.quartile = NULL, tagging.location = c(0, 0), tagging.date,
-  retrieval.date, twilight.sd = 10, range.solar = c(-7, -1),
-  speed.wet = c(20, 0.2, 25), speed.dry = c(20, 0.2, 25), sst.sd = 0.5,
-  max.sst.diff = 3, days.around.spring.equinox = c(10, 10),
-  days.around.fall.equinox = c(10, 10), ice.conc.cutoff = 1,
-  boundary.box = c(-180, 180, -90, 90), med.sea = T, black.sea = T,
-  baltic.sea = T, caspian.sea = T, land.mask = NULL, east.west.comp = T,
-  sensor, trn, act, wetdry.resolution = 30, backward = F,
+  retrieval.date, sunrise.sd = c(2.49, 0.94, 4.98), sunset.sd = c(2.49,
+  0.94, 4.98), range.solar = c(-7, -1), speed.wet = c(20, 0.2, 25),
+  speed.dry = c(20, 0.2, 25), sst.sd = 0.5, max.sst.diff = 3,
+  days.around.spring.equinox = c(10, 10), days.around.fall.equinox = c(10,
+  10), ice.conc.cutoff = 1, boundary.box = c(-180, 180, -90, 90),
+  med.sea = T, black.sea = T, baltic.sea = T, caspian.sea = T,
+  land.mask = NULL, east.west.comp = T, sensor, trn, act,
+  wetdry.resolution = 30, backward = F,
   NOAA.OI.location = "E:/environmental data/SST/NOAA OI SST V2")
 }
 \arguments{
@@ -28,7 +29,9 @@ prob_algorithm(particle.number = 2000, iteration.number = 60,
 
 \item{retrieval.date}{retrieval date as POSIXct or Date object}
 
-\item{twilight.sd}{standard deviation around each sunrise or sunset event in min}
+\item{sunrise.sd}{output vector from twilight_error_estimation}
+
+\item{sunset.sd}{output vector from twilight_error_estimation}
 
 \item{range.solar}{min and max of solar angle range in degree}
 
@@ -100,6 +103,9 @@ sen           <- sst_deduction(datetime = BBA_sst$dtime, temp = BBA_sst$temp, te
 act           <- BBA_deg[BBA_deg$wet.dry=="wet",]
 act$wetdry    <- act$duration
 
+# twilight error distribution estimation ----
+tw            <- twilight_error_estimation()
+
 # download environmental data ----
 
 # download yearly NetCDF files for (replace YEAR with appropriate number): 
@@ -124,7 +130,8 @@ pr   <- prob_algorithm(trn                         = trn,
                       tagging.location            = c(-36.816,-54.316), 
                       particle.number             = 1000, 
                       iteration.number            = 100,
-                      twilight.sd                 = 15,
+                      sunrise.sd                  = tw,
+                      sunset.sd                   = tw,
                       range.solar                 = c(-7,-1),
                       boundary.box                = c(-120,40,-90,0),
                       days.around.spring.equinox  = c(0,0), 

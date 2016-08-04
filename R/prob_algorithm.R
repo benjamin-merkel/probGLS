@@ -7,7 +7,8 @@
 #' @param tagging.location tagging location longitude and latitude
 #' @param tagging.date deployment data as POSIXct or Date object
 #' @param retrieval.date  retrieval date as POSIXct or Date object
-#' @param twilight.sd standard deviation around each sunrise or sunset event in min
+#' @param sunrise.sd output vector from twilight_error_estimation
+#' @param sunset.sd output vector from twilight_error_estimation 
 #' @param range.solar min and max of solar angle range in degree
 #' @param speed.dry optimal speed, speed standard deviation and max speed allowed if logger is dry in m/s
 #' @param speed.wet optimal speed, speed standard deviation and max speed allowed if logger is wet in m/s
@@ -55,6 +56,9 @@
 #'act           <- BBA_deg[BBA_deg$wet.dry=="wet",]
 #'act$wetdry    <- act$duration
 #'
+#'# twilight error distribution estimation ----
+#'tw            <- twilight_error_estimation()
+#'
 #'# download environmental data ----
 #'
 #'# download yearly NetCDF files for (replace YEAR with appropriate number): 
@@ -79,7 +83,8 @@
 #'                       tagging.location            = c(-36.816,-54.316), 
 #'                       particle.number             = 1000, 
 #'                       iteration.number            = 100,
-#'                       twilight.sd                 = 15,
+#'                       sunrise.sd                  = tw,
+#'                       sunset.sd                   = tw,
 #'                       range.solar                 = c(-7,-1),
 #'                       boundary.box                = c(-120,40,-90,0),
 #'                       days.around.spring.equinox  = c(0,0), 
@@ -108,7 +113,8 @@ prob_algorithm <- function(particle.number      = 2000
                    ,tagging.location            = c(0,0)
                    ,tagging.date     
                    ,retrieval.date   
-                   ,twilight.sd                 = 10         
+                   ,sunrise.sd                  = c(2.49, 0.94, 4.98)         
+                   ,sunset.sd                   = c(2.49, 0.94, 4.98)         
                    ,range.solar                 = c(-7,-1)
                    ,speed.wet                   = c(20,0.2,25)
                    ,speed.dry                   = c(20,0.2,25)
@@ -139,12 +145,12 @@ tFirst <- tSecond <- type <- dtime <- doy <- jday <- year <- month <- NULL
 
 
 model.input <- data.frame(parameter=c('particle.number','iteration.number','loess.quartile','tagging.location',
-                                     'tagging.date','retrieval.date','twilight.sd','range.solar','speed.wet',
+                                     'tagging.date','retrieval.date','sunrise.sd','sunset.sd','range.solar','speed.wet',
                                      'speed.dry','sst.sd','max.sst.diff','days.around.spring.equinox',
                                      'days.around.fall.equinox','ice.conc.cutoff','boundary.box','med.sea','black.sea',
                                      'baltic.sea','caspian.sea','east.west.comp','wetdry.resolution','NOAA.OI.location','backward'),
                           chosen=c(paste(particle.number,collapse=" "),paste(iteration.number,collapse=" "),paste(loess.quartile,collapse=" "),paste(tagging.location,collapse=" "),
-                                   paste(tagging.date,collapse=" "),paste(retrieval.date,collapse=" "),paste(twilight.sd,collapse=" "),paste(range.solar,collapse=" "),paste(speed.wet,collapse=" "),
+                                   paste(tagging.date,collapse=" "),paste(retrieval.date,collapse=" "),paste(sunrise.sd,collapse=" "),paste(sunset.sd,collapse=" "),paste(range.solar,collapse=" "),paste(speed.wet,collapse=" "),
                                    paste(speed.dry,collapse=" "),paste(sst.sd,collapse=" "),paste(max.sst.diff,collapse=" "),paste(days.around.spring.equinox,collapse=" "),
                                    paste(days.around.fall.equinox,collapse=" "),paste(ice.conc.cutoff,collapse=" "),paste(boundary.box,collapse=" "),paste(med.sea,collapse=" "),paste(black.sea,collapse=" "),
                                    paste(baltic.sea,collapse=" "),paste(caspian.sea,collapse=" "),paste(east.west.comp,collapse=" "),paste(wetdry.resolution,collapse=" "),paste(NOAA.OI.location,collapse=" "),
@@ -158,7 +164,6 @@ if(length(landmask.location)==0){
 landmask.location <- paste(NOAA.OI.location,landmask.location,sep='/')[1]
 
 
-f = function(x) function(i) sapply(x, `[[`, i)
 
 # add date time julian doy etc -----
 trn$dtime     <- trn$tFirst+as.numeric(difftime(trn$tSecond,trn$tFirst,units='sec'))/2
@@ -177,6 +182,13 @@ if(nrow(trn)==0)  stop('no data points in trn file between selected tagging and 
 
 # define projections-----
 proj.latlon <- "+proj=longlat +datum=WGS84 +no_defs +ellps=WGS84 +towgs84=0,0,0"
+
+# create empty global raster for NOAA OISST V2 data set ----
+r <- raster(xmn=-180,xmx=180,ymn=-90,ymx=90,crs=CRS(proj.latlon),resolution=c(0.25,0.25))
+
+# add function to collapse lists into data.frame ----
+f = function(x) function(i) sapply(x, `[[`, i)
+
 
 # create spatial tagging.location object-----
 col              <- as.data.frame(cbind(as.numeric(tagging.location[1]),as.numeric(tagging.location[2])))
@@ -251,13 +263,21 @@ ho4[,1] <- as.POSIXct(as.numeric(as.character(ho4[,1])),origin="1970-01-01",tz="
 ho4[,2] <- as.POSIXct(as.numeric(as.character(ho4[,2])),origin="1970-01-01",tz="UTC")
 ho4[,4] <- as.POSIXct(as.numeric(as.character(ho4[,4])),origin="1970-01-01",tz="UTC")
 
+# assign unique step to each particle cloud -----
+ho4$loop.step      <- paste(as.numeric(julian(ho4$tFirst)),as.numeric(julian(ho4$tSecond)),ho4$type,sep="-") 
+ho4$step           <- as.numeric(as.factor(ho4$loop.step)) 
+
 # add sun elevation angle-----
 sun.elev.steps <- seq(range.solar[1],range.solar[2],0.01)
 ho4$sun.elev   <- sample(sun.elev.steps,size=nrow(ho4),replace=T)
 
 # vary tFirst and tSecond----
-ho4$tFirst.er  <- 60 * rnorm(length(ho4[,1]), mean = 0, sd = twilight.sd)  # in sec
-ho4$tSecond.er <- 60 * rnorm(length(ho4[,1]), mean = 0, sd = twilight.sd)  # in sec
+ho4$tFirst.er [ho4$type==1] <-  60 * (rlnorm(length(ho4[ho4$type==1,1]), meanlog = sunrise.sd[1], sdlog = sunrise.sd[2]) + sunrise.sd[3])
+ho4$tSecond.er[ho4$type==1] <- -60 * (rlnorm(length(ho4[ho4$type==1,1]), meanlog = sunset.sd[1],  sdlog = sunset.sd[2])  + sunset.sd[3]) 
+ho4$tFirst.er [ho4$type==2] <- -60 * (rlnorm(length(ho4[ho4$type==2,1]), meanlog = sunset.sd[1],  sdlog = sunset.sd[2])  + sunset.sd[3]) 
+ho4$tSecond.er[ho4$type==2] <-  60 * (rlnorm(length(ho4[ho4$type==2,1]), meanlog = sunrise.sd[1], sdlog = sunrise.sd[2]) + sunrise.sd[3]) 
+
+
 ho4$tFirst     <- ho4$tFirst  + ho4$tFirst.er
 ho4$tSecond    <- ho4$tSecond + ho4$tSecond.er
 
@@ -282,27 +302,16 @@ ho4$sun.elev[ho4$doy %in% c(spring.equinox,fall.equinox)] <- NA
 # remove all positions outside boundaries-----
 ho4    <- ho4[ho4$lon>boundary.box[1] & ho4$lon<boundary.box[2] & ho4$lat>boundary.box[3] & ho4$lat<boundary.box[4],]
 
-# transform to SpatialPointsdataframe and assign unique step to each particle cloud -----
+# transform to SpatialPointsdataframe -----
 sp6                <- ho4[!is.na(ho4$lat),]
-sp6$lon[sp6$lon<0] <- sp6$lon[sp6$lon<0]+360
-sp6$dtime2         <- (sp6$tSecond-sp6$tFirst)/2+sp6$tFirst
-sp6                <- sp6[order(sp6$dtime2),]
-sp6$loop.step      <- paste(floor(as.numeric(julian(sp6$tFirst))),
-                            floor(as.numeric(julian(sp6$tSecond))),
-                            sp6$type,sep="-") 
-
-# add unique step id ----
-loopstep           <- data.frame(loop.step=unique(sp6$loop.step),step=c(1:length(unique(sp6$loop.step))))
-sp6                <- merge(sp6,loopstep,by="loop.step",all=T)
 
 # remove all point clouds smaller then 1/5 of particles ----
-jt                 <- data.frame(jt=names(sort(table(sp6$loop.step))),
-                                 no=sort(table(sp6$loop.step)))
-sp6                <- sp6[sp6$loop.step %in% jt$jt[jt$no>=c(particle.number/5)],]
+jt                 <- data.frame(table(sp6$step))
+sp6                <- sp6[sp6$step %in% as.numeric(as.character(jt$Var1[jt$Freq>=c(particle.number/5)])),]
 
 # remove point clouds with maximum lower then min.lat or minimum higher then max.lat----
-rm.lat           <- data.frame(max.lat=tapply(sp6$lat,sp6$loop.step,max))
-rm.lat$loop.step <- rownames(rm.lat)
+rm.lat           <- data.frame(max.lat=tapply(sp6$lat,sp6$step,max))
+rm.lat$step      <- rownames(rm.lat)
 
 if(nrow(rm.lat)==0){
   stop("No data points inside boundary box. increase boundary box")  
@@ -310,10 +319,10 @@ if(nrow(rm.lat)==0){
 
 rm.lat$rm        <- 1
 rm.lat$rm[rm.lat$max.lat < boundary.box[3]] <- 0
-sp7                  <- sp6[sp6$loop.step %in% rm.lat$loop.step[rm.lat$rm==1],]
+sp7              <- sp6[sp6$step %in% rm.lat$step[rm.lat$rm==1],]
 
-rm.lat           <- data.frame(min.lat=tapply(sp7$lat,sp7$loop.step,min))
-rm.lat$loop.step <- rownames(rm.lat)
+rm.lat           <- data.frame(min.lat=tapply(sp7$lat,sp7$step,min))
+rm.lat$step      <- rownames(rm.lat)
 
 if(nrow(rm.lat)==0){
   stop("No data points inside boundary box. increase boundary box")  
@@ -321,16 +330,16 @@ if(nrow(rm.lat)==0){
 
 rm.lat$rm        <- 1
 rm.lat$rm[rm.lat$min.lat > boundary.box[4]] <- 0
-sp7                  <- sp7[sp7$loop.step %in% rm.lat$loop.step[rm.lat$rm==1],]
+sp7                  <- sp7[sp7$step %in% rm.lat$step[rm.lat$rm==1],]
 
 # create data frame of all particles computed ----
 all.particles        <- data.frame(sp7)
-all.particles$lon[all.particles$lon>180] <- all.particles$lon[all.particles$lon>180]-360
+#all.particles$lon[all.particles$lon>180] <- all.particles$lon[all.particles$lon>180]-360
 coordinates(all.particles) <- cbind(all.particles$lon,all.particles$lat)
 proj4string(all.particles) <- CRS(proj.latlon)
 
 # remove everything on land-----
-landms               <- raster(landmask.location)
+landms               <- rotate(raster(landmask.location))
 
 coordinates(sp7)   <- cbind(sp7$lon,sp7$lat)
 proj4string(sp7)   <- CRS(proj.latlon)
@@ -360,23 +369,13 @@ if(!is.null(land.mask)){
 }
 
 # remove all point clouds with less than 10 % points outside land ----
-jt                   <- data.frame(jt=names(sort(table(sp7$loop.step))),no=sort(table(sp7$loop.step)))
-sp8                  <- sp7[sp7$loop.step %in% jt$jt[jt$no>=c(particle.number*0.1)],]
-
-# change longitude from 0/360 to -180/180 ----
-grr                  <- as.data.frame(sp8)
-grr$lon[grr$lon>180] <- grr$lon[grr$lon>180]-360
-
-
-# create grr object-----
-grr              <- grr[!is.na(grr$lon),]
-coordinates(grr) <- cbind(grr$lon,grr$lat)
-proj4string(grr) <- CRS(proj.latlon)
-grr$date         <- grr$dtime
+jt               <- data.frame(table(sp7$step))
+grr              <- sp7[sp7$step %in% jt$Var1[jt$Freq>=c(particle.number*0.1)],]
 
 # define date and time as average between tFirst and tSecond-----
 grr$dtime        <- as.POSIXct((as.numeric(grr$tSecond)-as.numeric(grr$tFirst))/2,origin=grr$tFirst,tmz='UTC')
 grr$jday2        <- floor(grr$jday)
+grr$date         <- grr$dtime
 grr              <- grr[order(grr$dtime),]
 
 # create current location list and start with tagging.location and time of tagging-----
@@ -443,10 +442,11 @@ for(ts in steps){
                                  lon   = c(floor(min(gr3$lon)),ceiling(max(gr3$lon))),
                                  lat   = c(floor(min(gr3$lat)),ceiling(max(gr3$lat))))
       
-      fname.sst <- paste(NOAA.OI.location,'/sst.day.mean.' ,year=c(gr3$year[1]),'.v2.nc',sep='')
-      fname.err <- paste(NOAA.OI.location,'/sst.day.err.'  ,year=c(gr3$year[1]),'.v2.nc',sep='')
-      fname.ice <- paste(NOAA.OI.location,'/icec.day.mean.',year=c(gr3$year[1]),'.v2.nc',sep='')
-          
+      
+      fname.sst <- paste(NOAA.OI.location,'/sst.day.mean.' ,year=track2$year[1],'.v2.nc',sep='')
+      fname.err <- paste(NOAA.OI.location,'/sst.day.err.'  ,year=track2$year[1],'.v2.nc',sep='')
+      fname.ice <- paste(NOAA.OI.location,'/icec.day.mean.',year=track2$year[1],'.v2.nc',sep='')
+      
       if((min(track2$lon)*max(track2$lon))>=0){
         if(min(track2$lon)<0) track2$lon[track2$lon==0]<-360
         track2$lon[track2$lon<0] <- 360+track2$lon[track2$lon<0]
@@ -596,36 +596,22 @@ for(ts in steps){
       }
       
       sstdata         <- eoi2
+      sstdata$sst     <- sstdata$V1
       sstdata$ice     <- eii2[,3]
       sstdata$sst.err <- eri2[,3]
       
       # remove sst values in pixels with more than ice.conc.cutoff----
       # except for 2012-8-11 to 2012-8-16 as ice data is fucked up in this period
-      if(as.Date(gr3$date[1])<as.Date("2012-08-11") | as.Date(gr3$date[1])>as.Date("2012-08-16")) sstdata$V1[sstdata$ice > ice.conc.cutoff] <-NA
+      if(as.Date(gr3$date[1])<as.Date("2012-08-11") | as.Date(gr3$date[1])>as.Date("2012-08-16")) sstdata$sst[sstdata$ice > ice.conc.cutoff] <-NA
       
       # rasterize sat data-----
-      min.lat.sst   <- floor(min(sstdata$Lat))
-      max.lat.sst   <- ceiling(max(sstdata$Lat))
-      min.lon.sst   <- floor(min(sstdata$Lon))
-      max.lon.sst   <- ceiling(max(sstdata$Lon))
-      
-      if(min.lat.sst<(-90)) min.lat.sst=(-90)
-      if(max.lat.sst>( 90)) max.lat.sst=( 90)
-      if(min.lon.sst<(-180)) min.lon.sst=(-180)
-      if(max.lon.sst>( 180)) max.lon.sst=( 180)
-      
-      r <- raster(xmn=min.lon.sst,xmx=max.lon.sst,
-                  ymn=min.lat.sst,ymx=max.lat.sst,
-                  crs=CRS(proj.latlon),
-                  resolution=c(0.25,0.25))
-      
       coordinates(sstdata)                    <- cbind(sstdata[,2],sstdata[,1])
-      proj4string(sstdata)                    <- proj4string(gr3)
-      sstdata$V1[is.na(sstdata$V1)]           <- c(-10)
+      proj4string(sstdata)                    <- CRS(proj.latlon)
+      sstdata$sst[is.na(sstdata$sst)]           <- c(-10)
       sstdata$sst.err[is.na(sstdata$sst.err)] <- c(0)
       sstdata$ice[is.na(sstdata$ice)]         <- c(0)
       
-      sstd <- rasterize(sstdata,r,'V1')
+      sstd <- rasterize(sstdata,r,'sst')
       errd <- rasterize(sstdata,r,'sst.err')
       iced <- rasterize(sstdata,r,'ice')
       
