@@ -14,7 +14,7 @@ load.NOAA.OISST.V2(fname, lsmask, lonW, lonE, latS, latN, date1, date2,
 
 \item{lonW}{western-most longitude of search area, must be smaller than lonE}
 
-\item{lonE}{eastern-most longitude of search area, must be larger than lon1}
+\item{lonE}{eastern-most longitude of search area, must be larger than lonW}
 
 \item{latS}{southern-most latitude of search area, must be smaller than latN}
 

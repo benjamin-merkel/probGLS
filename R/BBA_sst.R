@@ -1,6 +1,6 @@
-#' sst data for one black browed albatross foraging trip.
+#' sst data for example black browed albatross foraging trip.
 #'
-#' sst data for one black browed albatross foraging trip.
+#' sst data for example black browed albatross foraging trip during the summer solstice.
 #'
 #' @name BBA_sst
 #' @format A data frame with 25 rows and 3 variables:

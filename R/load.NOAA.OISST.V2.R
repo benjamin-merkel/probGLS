@@ -5,7 +5,7 @@
 #' @param fname full path to NetCDF data file
 #' @param lsmask full path to land-sea mask NetCDF file
 #' @param lonW western-most longitude of search area, must be smaller than lonE
-#' @param lonE eastern-most longitude of search area, must be larger than lon1
+#' @param lonE eastern-most longitude of search area, must be larger than lonW
 #' @param latS southern-most latitude of search area, must be smaller than latN
 #' @param latN northern-most latitude of search area, must be larger than latS
 #' @param date1 first date in file to extract, must be Date class

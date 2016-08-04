@@ -2,7 +2,7 @@
 % Please edit documentation in R/BBA_sst.R
 \name{BBA_sst}
 \alias{BBA_sst}
-\title{sst data for one black browed albatross foraging trip.}
+\title{sst data for example black browed albatross foraging trip.}
 \format{A data frame with 25 rows and 3 variables:
 \describe{
   \item{dtime}{datetime object as POSIXct in UTC}
@@ -10,6 +10,6 @@
   \item{temp}{median recorded water temperature in degree Celsius}
 }}
 \description{
-sst data for one black browed albatross foraging trip.
+sst data for example black browed albatross foraging trip during the summer solstice.
 }
 
