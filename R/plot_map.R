@@ -8,8 +8,10 @@
 
 plot_map <- function(pr){
   
-  par(mar=c(0,0,0,0),mfrow=c(1,1))
-  plot(pr[[1]],col="white")
+  opar <- par(mfrow=c(1,1),mar=c(4,4,0,0))
+  plot(pr[[1]],col="white",ylab="Latitude",xlab="Longitude")
+  axis(1)
+  axis(2)
   for(s in 1:length(unique(pr[[2]]$step))){
     plot(pr[[1]][pr[[1]]$step==unique(pr[[1]]$step)[s],],col=colorRampPalette(c('grey90','grey50'))(nrow(pr[[2]]))[s],
          add=T,pch=19,cex=0.3)
@@ -22,7 +24,7 @@ plot_map <- function(pr){
   mm3 <- mm2[is.na(mm2$median.sun.elev),]
   points(mm3$lon,mm3$lat,cex=0.7,pch=3)
   
-  par(mfrow=c(1,1),mar=c(4,4,2,2)) 
+  par(opar) 
   
   
 }
