@@ -29,9 +29,9 @@ twilight_error_estimation <- function(shape = 2.49, scale = 0.94, delay = 0){
   abline(v = c(-x0 + delay), lty = 3, col = "firebrick", lwd = 2)
   lines(c(x0.5 - x0 + delay, x0.5 - x0 + delay),c(0, 0.5), lty = 3, col = "firebrick", lwd = 2)
   lines(c(x0.1 - x0 + delay, x0.1 - x0 + delay),c(0, 0.1), lty = 3, col = "firebrick", lwd = 2)
-  mtext(paste("maximum error before twilight event =", round(-x0 + delay, 1),"min",
-              "\n50% probability error after twilight event =", round(x0.5 - x0 + delay, 1),"min",
-              "\n10% probability error after twilight event =", round(x0.1 - x0 + delay, 1),"min"), font = 3, col = "firebrick", cex = 1.2, line = 0.5)
+  mtext(paste("max err before sunrise/ after sunset =", round(x0 + delay, 1),"min",
+              "\n50% prob err after sunrise/ before sunset =", round(x0.5 - x0 + delay, 1),"min",
+              "\n10% prob err after sunrise/ before sunset =", round(x0.1 - x0 + delay, 1),"min"), font = 3, col = "firebrick", cex = 1.2, line = 0.5)
   par(opar)
   
   output <- c(shape = shape, scale = scale, x0 = -x0 + delay, x0.5 = x0.5 - x0 + delay, x0.1 = x0.1 - x0 + delay)

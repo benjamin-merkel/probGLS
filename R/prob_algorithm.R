@@ -314,7 +314,7 @@ rm.lat           <- data.frame(max.lat=tapply(sp6$lat,sp6$step,max))
 rm.lat$step      <- rownames(rm.lat)
 
 if(nrow(rm.lat)==0){
-  stop("No data points inside boundary box. increase boundary box")  
+  stop(paste("No data points inside boundary box. increase boundary box"),call.=F)  
 }
 
 rm.lat$rm        <- 1
@@ -325,7 +325,7 @@ rm.lat           <- data.frame(min.lat=tapply(sp7$lat,sp7$step,min))
 rm.lat$step      <- rownames(rm.lat)
 
 if(nrow(rm.lat)==0){
-  stop("No data points inside boundary box. increase boundary box")  
+  stop(paste("No data points inside boundary box. increase boundary box"),call.=F)  
 }
 
 rm.lat$rm        <- 1
