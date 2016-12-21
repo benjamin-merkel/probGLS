@@ -3,14 +3,13 @@
 #' plot timeline of algorithm output
 #' @param pr probGLS algorithm output
 #' @param degElevation sun elevation angle for comparison threshold method, if NULL no threshold positions are plotted
-#' @param SST if T, plot SST; if F do not plot SST
 #' @export
 
 
 
-plot_timeline <- function(pr,degElevation=NULL,SST=T){
+plot_timeline <- function(pr,degElevation=NULL){
   
-  
+  if(pr[[4]]$chosen[pr[[4]]$parameter=="sensor.data"]) SST=F else SST=T
   if(!is.null(degElevation)){
     ho2 <- pr[[2]]
     ho2$tFirst  <- ho2$tFirst  + ho2$tFirst.err

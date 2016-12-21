@@ -4,7 +4,7 @@
 \alias{plot_timeline}
 \title{plot timeline of algorithm output}
 \usage{
-plot_timeline(pr, degElevation = NULL, SST = T)
+plot_timeline(pr, degElevation = NULL)
 }
 \arguments{
 \item{pr}{probGLS algorithm output}
