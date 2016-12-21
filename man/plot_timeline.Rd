@@ -10,8 +10,6 @@ plot_timeline(pr, degElevation = NULL)
 \item{pr}{probGLS algorithm output}
 
 \item{degElevation}{sun elevation angle for comparison threshold method, if NULL no threshold positions are plotted}
-
-\item{SST}{if T, plot SST; if F do not plot SST}
 }
 \description{
 plot timeline of algorithm output

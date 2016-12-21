@@ -93,7 +93,8 @@
 #'                       speed.wet                   = c(1,1.3,5), 
 #'                       sst.sd                      = 0.5,       
 #'                       max.sst.diff                = 3,          
-#'                       east.west.comp              = TRUE, 
+#'                       east.west.comp              = T,
+#'                       land.mask                   = T, 
 #'                       ice.conc.cutoff             = 1, 
 #'                       wetdry.resolution           = 1,
 #'                       NOAA.OI.location            = "folder with environmental data and land mask")
@@ -142,27 +143,31 @@ start.time <- Sys.time()
 #appease R CMD check
 tFirst <- tSecond <- type <- dtime <- doy <- jday <- year <- month <- NULL
 
+oldw <- getOption("warn")
+options(warn = -1)
 
 
+if(is.null(sensor)) sst.used=F else sst.used=T
 model.input <- data.frame(parameter=c('particle.number','iteration.number','loess.quartile','tagging.location',
                                      'tagging.date','retrieval.date','sunrise.sd','sunset.sd','range.solar','speed.wet',
                                      'speed.dry','sst.sd','max.sst.diff','days.around.spring.equinox',
                                      'days.around.fall.equinox','ice.conc.cutoff','boundary.box','med.sea','black.sea',
-                                     'baltic.sea','caspian.sea','east.west.comp','wetdry.resolution','NOAA.OI.location','backward'),
+                                     'baltic.sea','caspian.sea','east.west.comp','wetdry.resolution','NOAA.OI.location','backward','sensor.data'),
                           chosen=c(paste(particle.number,collapse=" "),paste(iteration.number,collapse=" "),paste(loess.quartile,collapse=" "),paste(tagging.location,collapse=" "),
                                    paste(tagging.date,collapse=" "),paste(retrieval.date,collapse=" "),paste(sunrise.sd,collapse=" "),paste(sunset.sd,collapse=" "),paste(range.solar,collapse=" "),paste(speed.wet,collapse=" "),
                                    paste(speed.dry,collapse=" "),paste(sst.sd,collapse=" "),paste(max.sst.diff,collapse=" "),paste(days.around.spring.equinox,collapse=" "),
                                    paste(days.around.fall.equinox,collapse=" "),paste(ice.conc.cutoff,collapse=" "),paste(boundary.box,collapse=" "),paste(med.sea,collapse=" "),paste(black.sea,collapse=" "),
                                    paste(baltic.sea,collapse=" "),paste(caspian.sea,collapse=" "),paste(east.west.comp,collapse=" "),paste(wetdry.resolution,collapse=" "),paste(NOAA.OI.location,collapse=" "),
-                                   paste(backward,collapse=" ")))
+                                   paste(backward,collapse=" "),sst.used))
 
-# find land mask file or error ----
-landmask.location <- list.files(path=NOAA.OI.location,pattern="lsmask.oisst.v2.nc",recursive=T)
-if(length(landmask.location)==0){
-  stop(paste('no land mask file found in folder',NOAA.OI.location,sep=' '),call.=F)
+if(!is.null(land.mask) & !is.null(sensor)){
+  # find land mask file or error ----
+  landmask.location <- list.files(path=NOAA.OI.location,pattern="lsmask.oisst.v2.nc",recursive=T)
+  if(length(landmask.location)==0){
+    stop(paste('no land mask file found in folder',NOAA.OI.location,sep=' '),call.=F)
+  }
+  landmask.location <- paste(NOAA.OI.location,landmask.location,sep='/')[1]
 }
-landmask.location <- paste(NOAA.OI.location,landmask.location,sep='/')[1]
-
 
 
 # add date time julian doy etc -----
@@ -338,12 +343,12 @@ all.particles        <- data.frame(sp7)
 coordinates(all.particles) <- cbind(all.particles$lon,all.particles$lat)
 proj4string(all.particles) <- CRS(proj.latlon)
 
-# remove everything on land-----
-landms               <- rotate(raster(landmask.location))
 
+  # remove everything on land-----
+if(!is.null(land.mask) & !is.null(sensor))  landms               <- rotate(raster(landmask.location))
 coordinates(sp7)   <- cbind(sp7$lon,sp7$lat)
 proj4string(sp7)   <- CRS(proj.latlon)
-sp7$landmask       <- extract(landms,sp7)
+if(!is.null(land.mask) & !is.null(sensor))  sp7$landmask       <- extract(landms,sp7)
 
 
 # remove baltic sea ---- 
@@ -797,6 +802,8 @@ cat(paste('algorithm run time:',round(as.numeric(time.taken),1),'min',sep=" "),'
 
 list.all            <- list(newt2,newg,all.particles,model.input,time.taken)
 names(list.all)     <- c('all tracks','most probable track','all possible particles','input parameters','model run time') 
+
+options(warn = oldw)
 
 return(list.all)
 }
