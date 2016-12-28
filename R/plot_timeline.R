@@ -9,7 +9,7 @@
 
 plot_timeline <- function(pr,degElevation=NULL){
   
-  if(pr[[4]]$chosen[pr[[4]]$parameter=="sensor.data"]) SST=F else SST=T
+  if(pr[[4]]$chosen[pr[[4]]$parameter=="sensor.data"]) SST=T else SST=F
   if(!is.null(degElevation)){
     ho2 <- pr[[2]]
     ho2$tFirst  <- ho2$tFirst  + ho2$tFirst.err
