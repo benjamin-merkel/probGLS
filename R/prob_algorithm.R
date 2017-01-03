@@ -306,11 +306,11 @@ ho4$sun.elev[ho4$doy %in% c(spring.equinox,fall.equinox)] <- NA
 
 # remove all positions outside boundaries-----
 if(boundary.box[1] > boundary.box[2]){
-  ho4    <- ho4[ho4$lon<boundary.box[1] & ho4$lat>boundary.box[3] & ho4$lat<boundary.box[4],]
-  ho4    <- ho4[ho4$lon>boundary.box[2],]
+  ho4    <- ho4[(ho4$lon>boundary.box[1] | ho4$lon<boundary.box[2]) & ho4$lat>boundary.box[3] & ho4$lat<boundary.box[4],]
 } else {
-  ho4    <- ho4[ho4$lon>boundary.box[1] & ho4$lon<boundary.box[2] & ho4$lat>boundary.box[3] & ho4$lat<boundary.box[4],]
+  ho4    <- ho4[ ho4$lon>boundary.box[1] & ho4$lon<boundary.box[2]  & ho4$lat>boundary.box[3] & ho4$lat<boundary.box[4],]
 }
+
 # transform to SpatialPointsdataframe -----
 sp6                <- ho4[!is.na(ho4$lat),]
 
@@ -789,7 +789,7 @@ newt2$month        <- as.numeric(strftime(newt2$dtime,'%m'))
 
 # calculate geographic median for each particle cloud----
 for(i in unique(newt2$step)){
-  sf                  <- data.frame(spDists(newt2[newt2$step==i,1:2],longlat=T),ncol=length(newt2$step[newt2$step==i]))
+  sf                  <- data.frame(spDists(coordinates(newt2[newt2$step==i,]),longlat=T),ncol=length(newt2$step[newt2$step==i]))
   sa                  <- data.frame(sum.dist=rowMeans(sf),bot=seq(1,length(newt2$step[newt2$step==i]),1))
   gmp                 <- newt2[newt2$step==i,] [sa$sum.dist==min(sa$sum.dist),] [1,]
   gmp$median.sat.sst  <- median(newt2$sat.sst[newt2$step==i])
