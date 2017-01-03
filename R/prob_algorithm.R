@@ -160,7 +160,7 @@ model.input <- data.frame(parameter=c('particle.number','iteration.number','loes
                                    paste(baltic.sea,collapse=" "),paste(caspian.sea,collapse=" "),paste(east.west.comp,collapse=" "),paste(wetdry.resolution,collapse=" "),paste(NOAA.OI.location,collapse=" "),
                                    paste(backward,collapse=" "),sst.used))
 
-if(!is.null(land.mask) & !is.null(sensor)){
+if(!is.null(land.mask)){
   # find land mask file or error ----
   landmask.location <- list.files(path=NOAA.OI.location,pattern="lsmask.oisst.v2.nc",recursive=T)
   if(length(landmask.location)==0){
@@ -305,8 +305,12 @@ ho4$lat[ho4$doy %in% c(spring.equinox,fall.equinox)] <- sample(seq(boundary.box[
 ho4$sun.elev[ho4$doy %in% c(spring.equinox,fall.equinox)] <- NA
 
 # remove all positions outside boundaries-----
-ho4    <- ho4[ho4$lon>boundary.box[1] & ho4$lon<boundary.box[2] & ho4$lat>boundary.box[3] & ho4$lat<boundary.box[4],]
-
+if(boundary.box[1] > boundary.box[2]){
+  ho4    <- ho4[ho4$lon<boundary.box[1] & ho4$lat>boundary.box[3] & ho4$lat<boundary.box[4],]
+  ho4    <- ho4[ho4$lon>boundary.box[2],]
+} else {
+  ho4    <- ho4[ho4$lon>boundary.box[1] & ho4$lon<boundary.box[2] & ho4$lat>boundary.box[3] & ho4$lat<boundary.box[4],]
+}
 # transform to SpatialPointsdataframe -----
 sp6                <- ho4[!is.na(ho4$lat),]
 
@@ -345,10 +349,10 @@ proj4string(all.particles) <- CRS(proj.latlon)
 
 
   # remove everything on land-----
-if(!is.null(land.mask) & !is.null(sensor))  landms               <- rotate(raster(landmask.location))
+if(!is.null(land.mask))  landms               <- rotate(raster(landmask.location))
 coordinates(sp7)   <- cbind(sp7$lon,sp7$lat)
 proj4string(sp7)   <- CRS(proj.latlon)
-if(!is.null(land.mask) & !is.null(sensor))  sp7$landmask       <- extract(landms,sp7)
+if(!is.null(land.mask))  sp7$landmask       <- extract(landms,sp7)
 
 
 # remove baltic sea ---- 
