@@ -48,5 +48,15 @@ sst_deduction <- function(datetime,temp,temp.range=c(-2,30)){
     temp$SST.remove[temp$sst.diff2>12] <- T
     
     output <- subset(temp,select=c(date,SST,SST.remove))
+    
+    opar <- par(mfrow=c(1,1),mar=c(3,4,1,1))
+    plot(data$dtime,data$temp,pch=19,
+         type="o",col=grey(0.8),ylab=expression(temperature ~degree~C),xlab="")
+    points(as.POSIXct(output$date),output$SST,pch=as.numeric(as.factor(output$SST.remove))+20,
+         type="o",bg=as.numeric(as.factor(output$SST.remove)))
+    par(opar)
+    
+    
   }
+  return(output)
 }

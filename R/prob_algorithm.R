@@ -67,7 +67,7 @@
 #'# daily mean sea ice concentration -> 'icec.day.mean.YEAR.v2.nc'
 #'
 #'# from:
-#'# http://www.esrl.noaa.gov/psd/data/gridded/data.noaa.oisst.v2.highres.html
+#'# https://www.esrl.noaa.gov/psd/data/gridded/data.noaa.oisst.v2.highres.html
 #'# and place all into the same folder
 #'
 #'# Also, download the land mask file: 'lsmask.oisst.v2.nc' from the same directory 
@@ -452,9 +452,15 @@ for(ts in steps){
       
       track2.origin <- track2
       
-      fname.sst <- paste(NOAA.OI.location,'/sst.day.mean.' ,year=track2$year[1],'.v2.nc',sep='')
-      fname.err <- paste(NOAA.OI.location,'/sst.day.err.'  ,year=track2$year[1],'.v2.nc',sep='')
-      fname.ice <- paste(NOAA.OI.location,'/icec.day.mean.',year=track2$year[1],'.v2.nc',sep='')
+      
+      ls <- list.files(NOAA.OI.location)
+      fname.sst <- paste0(NOAA.OI.location,'/',ls[grep(paste0('sst.day.mean.'  ,track2$year[1]),ls)])[1]
+      fname.err <- paste0(NOAA.OI.location,'/',ls[grep(paste0('sst.day.err.'   ,track2$year[1]),ls)])[1]
+      fname.ice <- paste0(NOAA.OI.location,'/',ls[grep(paste0('icec.day.mean.' ,track2$year[1]),ls)])[1]
+      
+      # fname.sst <- paste(NOAA.OI.location,'/sst.day.mean.' ,year=track2$year[1],'.v2.nc',sep='')
+      # fname.err <- paste(NOAA.OI.location,'/sst.day.err.'  ,year=track2$year[1],'.v2.nc',sep='')
+      # fname.ice <- paste(NOAA.OI.location,'/icec.day.mean.',year=track2$year[1],'.v2.nc',sep='')
       
       
       if((min(track2$lon)*max(track2$lon))>=0){
@@ -718,7 +724,7 @@ for(ts in steps){
   step.end  <- Sys.time()
   step.time <- step.end - step.start
   
-  cat(paste(as.Date(gr3$dtime)[1],'  -  ',iter," of ",length(unique(grr$step)),' steps  -  ',round(step.time,2),' sec',sep=""),'\r')  
+  cat('\r',paste(as.Date(gr3$dtime)[1],'  -  ',iter," of ",length(unique(grr$step)),' steps      ',sep=""))  
 }
 
 
@@ -765,7 +771,7 @@ for(i in unique(newt2$step)){
 end.time   <- Sys.time()
 time.taken <- abs(difftime(end.time,start.time,units="mins"))
 
-cat(paste('algorithm run time:',round(as.numeric(time.taken),1),'min',sep=" "),'\n')
+cat('\r',paste('algorithm run time:',round(as.numeric(time.taken),1),'min      ',sep=" "))
 
 list.all            <- list(newt2,newg,all.particles,model.input,time.taken)
 names(list.all)     <- c('all tracks','most probable track','all possible particles','input parameters','model run time') 

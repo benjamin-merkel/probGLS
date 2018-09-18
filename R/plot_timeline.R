@@ -15,8 +15,8 @@ plot_timeline <- function(pr,degElevation=NULL,center.longitude = 0){
     ho2 <- data.frame(pr[[2]])
     ho2$tFirst  <- ho2$tFirst  + ho2$tFirst.err
     ho2$tSecond <- ho2$tSecond + ho2$tSecond.err
-    ho2$lon <- coord(tFirst=ho2$tFirst,tSecond=ho2$tSecond,type=ho2$type,degElevation = degElevation,note=F)[,1]
-    ho2$lat <- coord(tFirst=ho2$tFirst,tSecond=ho2$tSecond,type=ho2$type,degElevation = degElevation,note=F)[,2]
+    ho2$lons <- coord(tFirst=ho2$tFirst,tSecond=ho2$tSecond,type=ho2$type,degElevation = degElevation,note=F)[,1]
+    ho2$lats <- coord(tFirst=ho2$tFirst,tSecond=ho2$tSecond,type=ho2$type,degElevation = degElevation,note=F)[,2]
   }
   se <- as.numeric(unlist(strsplit(as.character(pr[[4]][14,2]),'[ ]')))
   fe <- as.numeric(unlist(strsplit(as.character(pr[[4]][15,2]),'[ ]')))
@@ -47,7 +47,7 @@ plot_timeline <- function(pr,degElevation=NULL,center.longitude = 0){
     x2$lon[x2$lon<0] <- x2$lon[x2$lon<0]+360
     if(!is.null(degElevation)) {
       x3 <-ho2
-      x3$lon[x3$lon<0] <- x3$lon[x3$lon<0]+360
+      x3$lons[x3$lons<0] <- x3$lons[x3$lons<0]+360
     }
     long.label = "Longitude [0 to 360]"
   } else {
@@ -66,7 +66,7 @@ plot_timeline <- function(pr,degElevation=NULL,center.longitude = 0){
     polygon(poly.frame(pr[[1]]$jday,pr[[1]]$lat,0.75,0.25),col=rgb(1,0,0,alpha=0.3) ,border=NA)
     polygon(poly.frame(pr[[1]]$jday,pr[[1]]$lat,0.95,0.05),col=rgb(1,0,0,alpha=0.3) ,border=NA)
     lines(pr[[2]]$jday,pr[[2]]$lat,col='darkred',lwd=1,type="o",cex=1)
-    if(!is.null(degElevation)) lines(ho2$jday,ho2$lat,lwd=1,type="o",cex=1)
+    if(!is.null(degElevation)) lines(ho2$jday,ho2$lats,lwd=1,type="o",cex=1)
     abline(v=c(jse1,jse2),lty=3,col="green")
     abline(v=c(jfe1,jfe2),lty=3,col="blue")
     
@@ -74,7 +74,7 @@ plot_timeline <- function(pr,degElevation=NULL,center.longitude = 0){
     polygon(poly.frame(x1$jday,x1$lon,0.75,0.25),col=rgb(1,0,0,alpha=0.3) ,border=NA)
     polygon(poly.frame(x1$jday,x1$lon,0.95,0.05),col=rgb(1,0,0,alpha=0.3) ,border=NA)
     lines(x2$jday,x2$lon,col='darkred',lwd=1,type="o",cex=1)
-    if(!is.null(degElevation)) lines(x3$jday,x3$lon,lwd=1,type="o",cex=1)
+    if(!is.null(degElevation)) lines(x3$jday,x3$lons,lwd=1,type="o",cex=1)
     
     
     plot  (pr[[1]]$jday,pr[[1]]$sat.sst,col="white",ylab="SST",xaxt="n")
@@ -91,7 +91,7 @@ plot_timeline <- function(pr,degElevation=NULL,center.longitude = 0){
     polygon(poly.frame(pr[[1]]$jday,pr[[1]]$lat,0.75,0.25),col=rgb(1,0,0,alpha=0.3) ,border=NA)
     polygon(poly.frame(pr[[1]]$jday,pr[[1]]$lat,0.95,0.05),col=rgb(1,0,0,alpha=0.3) ,border=NA)
     lines(pr[[2]]$jday,pr[[2]]$lat,col='darkred',lwd=1,type="o",cex=1)
-    if(!is.null(degElevation)) lines(ho2$jday,ho2$lat,lwd=1,type="o",cex=1)
+    if(!is.null(degElevation)) lines(ho2$jday,ho2$lats,lwd=1,type="o",cex=1)
     abline(v=c(jse1,jse2),lty=3,col="green")
     abline(v=c(jfe1,jfe2),lty=3,col="blue")
     
@@ -100,7 +100,7 @@ plot_timeline <- function(pr,degElevation=NULL,center.longitude = 0){
     polygon(poly.frame(x1$jday,x1$lon,0.75,0.25),col=rgb(1,0,0,alpha=0.3) ,border=NA)
     polygon(poly.frame(x1$jday,x1$lon,0.95,0.05),col=rgb(1,0,0,alpha=0.3) ,border=NA)
     lines(x2$jday,x2$lon,col='darkred',lwd=1,type="o",cex=1)
-    if(!is.null(degElevation)) lines(x3$jday,x3$lon,lwd=1,type="o",cex=1)
+    if(!is.null(degElevation)) lines(x3$jday,x3$lons,lwd=1,type="o",cex=1)
     axis(1,at=floor(pr[[2]]$jday),labels=as.Date(floor(pr[[2]]$jday),origin="1970-01-01"))
   }
   par(opar) 
