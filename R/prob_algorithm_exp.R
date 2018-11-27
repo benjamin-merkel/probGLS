@@ -44,7 +44,7 @@
 
 
 
-prob_algorithm <- function(particle.number      = 2000
+prob_algorithm_exp <- function(particle.number      = 2000
                    ,iteration.number            = 60
                    ,loess.quartile              = NULL 
                    ,tagging.location            = c(0,0)
@@ -65,7 +65,7 @@ prob_algorithm <- function(particle.number      = 2000
                    ,black.sea                   = T        
                    # ,baltic.sea                  = T      
                    ,caspian.sea                 = T    
-                   # ,land.mask                   = NULL
+                   ,land.mask                   = T
                    ,east.west.comp              = T   
                    ,sensor        
                    ,trn     
@@ -90,12 +90,12 @@ model.input <- data.frame(parameter=c('particle.number','iteration.number','loes
                                      'tagging.date','retrieval.date','sunrise.sd','sunset.sd','range.solar','speed.wet',
                                      'speed.dry','sst.sd','max.sst.diff','days.around.spring.equinox',
                                      'days.around.fall.equinox','ice.conc.cutoff','boundary.box','med.sea','black.sea',
-                                     'baltic.sea','caspian.sea','east.west.comp','wetdry.resolution','NOAA.OI.location','backward','sensor.data'),
+                                     'caspian.sea','east.west.comp','wetdry.resolution','NOAA.OI.location','backward','sensor.data'),
                           chosen=c(paste(particle.number,collapse=" "),paste(iteration.number,collapse=" "),paste(loess.quartile,collapse=" "),paste(tagging.location,collapse=" "),
                                    paste(tagging.date,collapse=" "),paste(retrieval.date,collapse=" "),paste(sunrise.sd,collapse=" "),paste(sunset.sd,collapse=" "),paste(range.solar,collapse=" "),paste(speed.wet,collapse=" "),
                                    paste(speed.dry,collapse=" "),paste(sst.sd,collapse=" "),paste(max.sst.diff,collapse=" "),paste(days.around.spring.equinox,collapse=" "),
                                    paste(days.around.fall.equinox,collapse=" "),paste(ice.conc.cutoff,collapse=" "),paste(boundary.box,collapse=" "),paste(med.sea,collapse=" "),paste(black.sea,collapse=" "),
-                                   paste(baltic.sea,collapse=" "),paste(caspian.sea,collapse=" "),paste(east.west.comp,collapse=" "),paste(wetdry.resolution,collapse=" "),paste(NOAA.OI.location,collapse=" "),
+                                   paste(caspian.sea,collapse=" "),paste(east.west.comp,collapse=" "),paste(wetdry.resolution,collapse=" "),paste(NOAA.OI.location,collapse=" "),
                                    paste(backward,collapse=" "),sst.used))
 
 if(!is.null(land.mask)){
@@ -159,10 +159,10 @@ col$sat.ice      <- NA
 col$sat.sst      <- NA
 col$sat.sst.err  <- NA
 col$tag.sst      <- NA
+col$tag.cond     <- NA
 col$sst.diff     <- NA
 col$wsst         <- NA
 col$wspeed       <- NA
-col$wcond        <- NA
 col$wrel         <- 1
 
 # create empty spdf ----
@@ -288,10 +288,12 @@ proj4string(all.particles) <- CRS(proj.latlon)
 
 
   # remove everything on land-----
-if(!is.null(land.mask))  landms               <- rotate(raster(landmask.location))
+#if(!is.null(land.mask)) 
+  landms               <- rotate(raster(landmask.location))
 coordinates(sp7)   <- cbind(sp7$lon,sp7$lat)
 proj4string(sp7)   <- CRS(proj.latlon)
-if(!is.null(land.mask))  sp7$landmask       <- extract(landms,sp7)
+#if(!is.null(land.mask))  
+  sp7$landmask       <- extract(landms,sp7)
 
 
 # remove baltic sea ---- 
@@ -349,24 +351,27 @@ for(ts in steps){
     gr3          <- grr[grr$step==ts,]
     
     # determine based on conductivity if individual is in the Baltic Sea ----
+    cond1 <- cond$cond[cond$dtime >= min(gr3$tFirst) & cond$dtime <= max(gr3$tSecond)]
+    if(length(cond1)>0) obs.cond <- mean(cond1,na.rm=T) else obs.cond = NA
     
-    obs.cond <- mean(cond$cond[cond$dtime >= min(gr3$tFirst) & cond$dtime <= max(gr3$tSecond)],na.rm=T)
-    
-    # in water but not in the Baltic Sea
-    if(obs.cond >= cond.threshold[1]) {
-      gr3$landmask[gr3$lon>14 & gr3$lon<33.5 & gr3$lat>51.4 & gr3$lat<66.2] <- 0
-      gr3 <- gr3[gr3$landmask==1,]
-    }
-    # in water in the Baltic Sea
-    if(obs.cond < cond.threshold[1] & obs.cond >= cond.threshold[2]) {
-      gr3 <- gr3[gr3$landmask==1,]
-      gr3 <- gr3[gr3$lon>14 & gr3$lon<33.5 & gr3$lat>51.4 & gr3$lat<66.2,]
-    }
-    # on land
-    if(obs.cond < cond.threshold[2]) {
-      gr3 <- gr3[gr3$landmask==0,]
+    if(!is.na(obs.cond)){
+      # in water but not in the Baltic Sea
+      if(obs.cond >= cond.threshold[1]) {
+        gr3$landmask[gr3$lon>14 & gr3$lon<33.5 & gr3$lat>51.4 & gr3$lat<66.2] <- 0
+        gr3 <- gr3[gr3$landmask==1,]
+      }
+      # in water in the Baltic Sea
+      if(obs.cond < cond.threshold[1] & obs.cond >= cond.threshold[2]) {
+        gr3 <- gr3[gr3$landmask==1,]
+        gr3 <- gr3[gr3$lon>14 & gr3$lon<33.5 & gr3$lat>51.4 & gr3$lat<66.2,]
+      }
+      # on land
+      if(obs.cond < cond.threshold[2]) {
+        gr3 <- gr3[gr3$landmask==0,]
+      }
     }
       
+    if(length(gr3$dtime[gr3$step == ts])>0){
     # calculate bearing and distance to previous locations----
     gbear        <- lapply (colt,FUN=function(x) bearing(x,gr3))
     gdist        <- lapply (colt,FUN=function(x) spDists(gr3,x,longlat=T)*1000)  
@@ -577,7 +582,7 @@ for(ts in steps){
                                             sst.diff    = gr3$sst.diff,
                                             sat.sst.err = gr3$sat.sst.err,
                                             sat.ice     = gr3$sat.ice))
-    #if(!is.null(land.mask)) if(land.mask==T) gr2   <- lapply(gr2,function(x) x[!is.na(x$sat.sst),])
+    if(!is.null(land.mask)) if(land.mask==T) gr2   <- lapply(gr2,function(x) x[!is.na(x$sat.sst),])
     #gr2   <- lapply(gr2,function(x) x$sst.diff[!is.na(x$sat.sst)] = -1000)
     
     
@@ -658,6 +663,7 @@ for(ts in steps){
         new.r[[botts]]$sat.sst      <- gr2[[botts]]$sat.sst[random.point[[botts]]]
         new.r[[botts]]$sat.sst.err  <- gr2[[botts]]$sat.sst.err[random.point[[botts]]]
         new.r[[botts]]$tag.sst      <- gr2[[botts]]$tag.sst[random.point[[botts]]]
+        new.r[[botts]]$tag.cond     <- obs.cond
         new.r[[botts]]$sst.diff     <- gr2[[botts]]$sst.diff[random.point[[botts]]]
         new.r[[botts]]$wsst         <- gr2[[botts]]$wsst[random.point[[botts]]]
         new.r[[botts]]$wspeed       <- gr2[[botts]]$wspeed[random.point[[botts]]]
@@ -680,7 +686,7 @@ for(ts in steps){
     if(iter==1) newt2 <- new.r2 else newt2 <- rbind(newt2,new.r2)
     
   }
-
+}
   step.end  <- Sys.time()
   step.time <- step.end - step.start
   
