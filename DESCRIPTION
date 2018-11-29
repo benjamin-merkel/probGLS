@@ -7,6 +7,6 @@ Description: A probabilistic algorithm to filter geolocation data from various l
 Depends: R (>= 3.2.3), GeoLight, geosphere, raster, ncdf4, stringr
 License: GPL (>= 2)
 URL: https://github.com/benjamin-merkel
-RoxygenNote: 5.0.1
+RoxygenNote: 6.1.0
 LazyLoad: yes
 LazyData: yes

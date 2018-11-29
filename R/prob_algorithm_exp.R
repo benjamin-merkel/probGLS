@@ -582,7 +582,7 @@ for(ts in steps){
                                             sst.diff    = gr3$sst.diff,
                                             sat.sst.err = gr3$sat.sst.err,
                                             sat.ice     = gr3$sat.ice))
-    if(!is.null(land.mask)) if(land.mask==T) gr2   <- lapply(gr2,function(x) x[!is.na(x$sat.sst),])
+    #if(!is.null(land.mask)) if(land.mask==T) gr2   <- lapply(gr2,function(x) x[!is.na(x$sat.sst),])
     #gr2   <- lapply(gr2,function(x) x$sst.diff[!is.na(x$sat.sst)] = -1000)
     
     

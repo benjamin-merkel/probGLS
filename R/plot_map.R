@@ -31,7 +31,7 @@ plot_map <- function(pr){
   mm3 <- mm2[is.na(mm2$median.sun.elev),]
   points(mm3$lon,mm3$lat,cex=0.7,pch=3)
   
-  points(cc[1],cc[2],cex=2.1,pch=22,bg="violet")
+  points(cc[1],cc[2],cex=2.1,pch=21,col="violet",lwd=2)
   
   par(opar) 
   
