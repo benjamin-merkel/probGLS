@@ -31,7 +31,7 @@ install.packages("devtools")
 
 This package received a major update Dec 2022
 
-- remove dependency on `raster` and `sp` and move to `sf`
+- remove dependency on `raster` and `sp` (excluding spDists used when distance method chosen is "ellipsoid") and move to `sf`
 - fix of a bug in `load_NOAA_OISST_V2`
 - updated plotting functions to adhere with the updated `prob_algorithm` output
 - updated manuals for each function

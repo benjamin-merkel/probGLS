@@ -8,7 +8,6 @@
 #' @param DATE date considered
 #' @param extract.value which data to extract: "sst" - SST, "err" - SST error, "icec" - sea ice concentration
 #' @return A vector of values for each lon lat pair given the extract.value
-#' @return  
 #' @return NetCDF files should be downloaded from the links on:
 #' @return http://www.esrl.noaa.gov/psd/data/gridded/data.noaa.oisst.v2.highres.html
 #' @return In addition to the temperature data files, also download a copy of the landmask file lsmask.oisst.v2.nc from the same page. Inside the NetCDF files, data are available on a 0.25 degree latitude x 0.25 degree longitude global grid (720x1440 cells) From -89.875N to 89.875N, 0.125E to 359.875E. Locations are at the CENTER of a grid cell.

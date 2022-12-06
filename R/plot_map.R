@@ -7,8 +7,8 @@
 #' @import paletteer
 #' @details This function plots the most probable path constructed using prob_algorithm and associated uncertainty. 
 #' @details The locations are colour coded by season. First and last location are connected by stippled lines to the capture location (assuming that it is also the recapture location). Dotted shapes denote 95% minimum convex polygon (MCP) of all estimated particles in the track. Increasing grey-scaled shapes illustrate 95, 75, 50 and 25% MCPs of all particles.
-#' @ImportFrom paletteer paletteer_d
-#' @ImportFrom rnaturalearth ne_countries
+#' @importFrom paletteer paletteer_d
+#' @importFrom rnaturalearth ne_countries
 #' @export
 
 plot_map <- function(pr, legend.position = "topleft"){

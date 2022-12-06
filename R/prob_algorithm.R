@@ -33,7 +33,7 @@
 #' @return A list with: [1] all positions, [2] geographic median positions, [3] all possible particles, [4] input parameters, [5] model run time. List items 1 to 3 are returned as SpatialPointsDataframe.
 #' @details Many weighting parameters can be used. Some others (which are not yet implemented) are: surface air temperature, air pressure, water salinity, and topography/ bathymetry.
 #' @import ncdf4
-#' @ImportFrom sp spDists
+#' @importFrom sp spDists
 #' @import GeoLight
 #' @import SGAT
 #' @import sf
@@ -126,8 +126,6 @@ prob_algorithm <- function(
     speed.dry                   = c(20,0.2,25),
     sst.sd                      = 0.5,
     max.sst.diff                = 3,
-    # days.around.spring.equinox  = c(10,10),
-    # days.around.fall.equinox    = c(10,10),
     ice.conc.cutoff             = 1,
     wetdry.resolution           = 1,
     east.west.comp              = T,  
@@ -152,13 +150,11 @@ prob_algorithm <- function(
   if(is.null(sensor)) sst.used=F else sst.used=T
   model.input <- data.frame(parameter=c('particle.number','iteration.number','loess.quartile','tagging.location',
                                         'tagging.date','retrieval.date','sunrise.sd','sunset.sd','range.solar','speed.wet',
-                                        'speed.dry','sst.sd','max.sst.diff','days.around.spring.equinox',
-                                        'days.around.fall.equinox','ice.conc.cutoff','boundary.box','med.sea','black.sea',
+                                        'speed.dry','sst.sd','max.sst.diff','ice.conc.cutoff','boundary.box','med.sea','black.sea',
                                         'baltic.sea','caspian.sea','east.west.comp','wetdry.resolution','NOAA.OI.location','backward','sensor.data'),
                             chosen=c(paste(particle.number,collapse=" "),paste(iteration.number,collapse=" "),paste(loess.quartile,collapse=" "),paste(tagging.location,collapse=" "),
                                      paste(tagging.date,collapse=" "),paste(retrieval.date,collapse=" "),paste(sunrise.sd,collapse=" "),paste(sunset.sd,collapse=" "),paste(range.solar,collapse=" "),paste(speed.wet,collapse=" "),
-                                     paste(speed.dry,collapse=" "),paste(sst.sd,collapse=" "),paste(max.sst.diff,collapse=" "),paste(days.around.spring.equinox,collapse=" "),
-                                     paste(days.around.fall.equinox,collapse=" "),paste(ice.conc.cutoff,collapse=" "),paste(boundary.box,collapse=" "),paste(med.sea,collapse=" "),paste(black.sea,collapse=" "),
+                                     paste(speed.dry,collapse=" "),paste(sst.sd,collapse=" "),paste(max.sst.diff,collapse=" "),paste(ice.conc.cutoff,collapse=" "),paste(boundary.box,collapse=" "),paste(med.sea,collapse=" "),paste(black.sea,collapse=" "),
                                      paste(baltic.sea,collapse=" "),paste(caspian.sea,collapse=" "),paste(east.west.comp,collapse=" "),paste(wetdry.resolution,collapse=" "),paste(NOAA.OI.location,collapse=" "),
                                      paste(backward,collapse=" "),sst.used))
   
