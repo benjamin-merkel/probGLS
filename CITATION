@@ -1,0 +1,17 @@
+citHeader("When citing the 'probGLS' package in publications please include:")
+
+bibentry(
+  bibtype="Article",
+  title = "A probabilistic algorithm to process geolocation data.",
+  author = c(
+    person(c("Benjamin"),"Merkel",role="aut"),
+    person(c("Richard", "A."),"Phillips",role="aut"),
+    person(c("Sébastien"),"Descamps",role="aut"),
+    person(c("Nigel", "G."),"Yoccoz",role="aut"),
+    person(c("Børge"),"Moe",role="aut"),
+    person(c("Hallvard"),"Strøm",role="aut")),
+  journal = "Movement Ecology",
+  issue = "1",
+  volume = "4",
+  year = "2016",
+  url = "http://dx.doi.org/10.1186/s40462-016-0091-8")
