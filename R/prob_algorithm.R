@@ -101,14 +101,14 @@
 #'                       NOAA.OI.location            = "folder with environmental data and land mask")
 #'
 #'# plot lat, lon, SST vs time ----
-#'plot_timeline(pr,degElevation = NULL)
+#'plot_timeline(pr, solar.angle = NULL)
 #'
 #'# plot lon vs lat map ----
 #'plot_map(pr)
 #' @export
 
 
-prob_exp <- function(
+prob_algorithm <- function(
     particle.number             = 100,
     iteration.number            = 10,
     loess.quartile              = NULL,
