@@ -14,7 +14,7 @@ devtools::install_github("SWotherspoon/SGAT")
 `probGLS` itself can also be installed from GitHub, using the devtools package. 
 
 ```R
-devtools::install_github("SWotherspoon/SGAT")
+devtools::install_github("benjamin-merkel/probGLS")
 ```
 
 If you don't have `devtools` installed already, install it first. 
@@ -31,7 +31,7 @@ install.packages("devtools")
 
 This package received a major update Dec 2022
 
-- remove dependency on raster and sp and move to sf
-- fix of a bug in load_NOAA_OISST_V2 function
-- updated plotting functions to adhere with the updated prob_algorithm output
+- remove dependency on `raster` and `sp` and move to `sf`
+- fix of a bug in `load_NOAA_OISST_V2`
+- updated plotting functions to adhere with the updated `prob_algorithm` output
 - updated manuals for each function
