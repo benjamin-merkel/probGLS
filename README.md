@@ -5,7 +5,7 @@ The package probabilistic algorithm for geolocation data (probGLS) provides some
 
 ## Installing
 
-`probGLS` now relies on `SGAT`, which can be installed from GitHub, using the devtools package. 
+`probGLS` now relies on `SGAT` (https://github.com/SWotherspoon/SGAT), which can be installed from GitHub, using the devtools package. 
 
 ```R
 devtools::install_github("SWotherspoon/SGAT")
