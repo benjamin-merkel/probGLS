@@ -1,2 +1,13 @@
 ^.*\.Rproj$
 ^\.Rproj\.user$
+^./R/test.R
+^./data/lsmask.oisst.v2.nc
+^./other/*.R
+^.gitignore
+^.Rhistory
+^other$
+^test\.R$
+^\.gitignore$
+^\.Rhistory$
+^\.Rproj$
+^R/test.R$

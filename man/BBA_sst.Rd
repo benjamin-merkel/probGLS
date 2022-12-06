@@ -3,13 +3,14 @@
 \name{BBA_sst}
 \alias{BBA_sst}
 \title{sst data for example black browed albatross foraging trip.}
-\format{A data frame with 25 rows and 3 variables:
+\format{
+A data frame with 25 rows and 3 variables:
 \describe{
   \item{dtime}{datetime object as POSIXct in UTC}
   \item{date}{date object as Date object}
   \item{temp}{median recorded water temperature in degree Celsius}
-}}
+}
+}
 \description{
 sst data for example black browed albatross foraging trip during the summer solstice.
 }
-
