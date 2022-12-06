@@ -8,10 +8,10 @@
 #' @param TRLat threshold method calculated latitude in daylog file
 #' @return A data.frame for further use in GeoLight or probGLS
 #' @return modified after trnTrans() in GeoLight by Tamara Emmenegger
-#' @import stringr
+#' @ImportFrom stringr str_split_fixed
 #' @export
 
-lotek_to_dataframe<-function(date,sunrise,sunset,TRLon,TRLat){
+lotek_to_dataframe<-function(date, sunrise, sunset, TRLon, TRLat){
   
   #appease R CMD check
   V2 <- NULL
@@ -32,13 +32,6 @@ lotek_to_dataframe<-function(date,sunrise,sunset,TRLon,TRLat){
   
   data$ss.H <- as.numeric(str_split_fixed(data$sunset,":",2)[,1])
   data$ss.M <- as.numeric(str_split_fixed(data$sunset,":",2)[,2])
-  
-  
-#   data$sr.H <- as.numeric(matrix(unlist(strsplit(as.character(data$sunrise),':')),ncol=2,byrow=T)[,1])
-#   data$sr.M <- as.numeric(matrix(unlist(strsplit(as.character(data$sunrise),':')),ncol=2,byrow=T)[,2])
-#   
-#   data$ss.H <- as.numeric(matrix(unlist(strsplit(as.character(data$sunset),':')),ncol=2,byrow=T)[,1])
-#   data$ss.M <- as.numeric(matrix(unlist(strsplit(as.character(data$sunset),':')),ncol=2,byrow=T)[,2])
   
   data$sr <- data$date
   data$ss <- data$date

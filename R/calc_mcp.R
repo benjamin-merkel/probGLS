@@ -16,6 +16,7 @@ calc_mcp <- function (xy, percent = 100) {
   est.cdg <- function(xy) apply(xy, 2, mean)
   cdg     <- lapply(r, est.cdg)
   levid   <- levels(id)
+  
   res     <- lapply(1:length(r), function(i) {
     k        <- levid[i]
     df.t     <- r[[levid[i]]]
@@ -35,8 +36,10 @@ calc_mcp <- function (xy, percent = 100) {
     so       <- st_combine(so)
     so       <- st_cast(so, "POLYGON")
     so       <- st_sf(so)
+    
     return(so)
   })
+  
   df <- do.call(rbind, res)
   df$id <- levels(id)
   

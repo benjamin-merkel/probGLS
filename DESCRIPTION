@@ -4,9 +4,8 @@ Version: 0.9.7
 Authors@R: c(
     as.person("Benjamin Merkel <merkel.scholar@gmail.no> [aut,cre]"))
 Description: A probabilistic algorithm to reconstruct geographic locations from light-level geolocation data.
-Depends: R (>= 4.2.2)
-Imports: sf, SGAT, GeoLight, geosphere, ncdf4, stringr
-Suggests: rnaturalearth, paletteer
+Depends: R (>= 4.2.2), sf, SGAT, GeoLight, ncdf4
+Imports: stringr, paletteer, rnaturalearth
 License: GPL (>= 2)
 URL: https://github.com/benjamin-merkel
 RoxygenNote: 7.2.1

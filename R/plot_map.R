@@ -6,19 +6,18 @@
 #' @import rnaturalearth
 #' @import paletteer
 #' @details This function plots the most probable path constructed using prob_algorithm and associated uncertainty. 
-#' @details The locations are colour coded by season. First and last location are connected by stippled lines to the capture and recapture locations. Dotted shapes denote 95% minimum convex polygon (MCP) of all estimated particles in the track. Increasing grey-scaled shapes illustrate 95, 75, 50 and 25% MCPs of all particles.
+#' @details The locations are colour coded by season. First and last location are connected by stippled lines to the capture location (assuming that it is also the recapture location). Dotted shapes denote 95% minimum convex polygon (MCP) of all estimated particles in the track. Increasing grey-scaled shapes illustrate 95, 75, 50 and 25% MCPs of all particles.
+#' @ImportFrom paletteer paletteer_d
+#' @ImportFrom rnaturalearth ne_countries
 #' @export
 
 plot_map <- function(pr, legend.position = "topleft"){
   
-  library(rnaturalearth)
-  library(paletteer)
-  
   x1 <- pr[[1]]
   x2 <- pr[[2]]
   
-  boundary <- as.numeric(unlist(strsplit(as.character(pr[[4]][17,2]),'[ ]')))
-  colony   <- as.numeric(unlist(strsplit(as.character(pr[[4]][4,2]),'[ ]')))
+  boundary <- as.numeric(unlist(strsplit(as.character(pr[[4]][pr[[4]]$parameter=="boundary.box",2]),'[ ]')))
+  colony   <- as.numeric(unlist(strsplit(as.character(pr[[4]][pr[[4]]$parameter=="tagging.location",2]),'[ ]')))
   colony   <- data.frame(lon = colony[1], lat = colony[2])
   colony   <- st_as_sf(colony, coords = c('lon','lat'), crs = 4326)
   

@@ -9,21 +9,21 @@
 #' @param retrieval.date  retrieval date as POSIXct or Date object
 #' @param sunrise.sd output vector from twilight_error_estimation
 #' @param sunset.sd output vector from twilight_error_estimation 
+#' @param tol 
 #' @param range.solar min and max of solar angle range in degree
 #' @param speed.dry optimal speed, speed standard deviation and max speed allowed if logger is dry in m/s
 #' @param speed.wet optimal speed, speed standard deviation and max speed allowed if logger is wet in m/s
+#' @param distance.method  
 #' @param sst.sd SST standard deviation in degree C 
 #' @param max.sst.diff max difference in SST allowed in degree C
-#' @param days.around.spring.equinox days before the Spring equinox and days after the Spring equinox. The Spring equinox is assumed constant at 20 March.
-#' @param days.around.fall.equinox days before the Fall equinox, days after the Fall equinox. The Fall equinox is assumed constant at 22 September.
 #' @param ice.conc.cutoff max percentage of sea ice in which the animal is believed to be
 #' @param boundary.box min lon, max lon, min lat and max lat of extrem boundary where you expect an animal to be
+#' @param east.west.comp if T apply biotrack east west movement compensation (Biotrack manual v11 page 31pp.)
+#' @param land.mask if T animal is only using ocean areas, if F animal is only using land areas, if NULL no land mask used
 #' @param med.sea if T classifiy mediterranean sea as land   
 #' @param black.sea if T classifiy black sea as land      
 #' @param baltic.sea if T classifiy baltic sea as land   
 #' @param caspian.sea if T classifiy caspian sea as land   
-#' @param land.mask if T animal is only using ocean areas, if F animal is only using land areas, if NULL no land mask used
-#' @param east.west.comp if T apply biotrack east west movement compensation (Biotrack manual v11 page 31pp.)
 #' @param sensor data.frame with daily SST data deduced from tag temperature readings (sst_deduction ouput), NULLif no SST data is available (SST will not be used)
 #' @param trn data.frame containing twilights and at least tFirst, tSecond and type (same as computed by trn_to_dataframe, ipe_to_dataframe or lotek_to_dataframe)
 #' @param act data.frame containing wet dry data (e.g. .act file from Biotrack loggers or .deg file from migrate tech loggers), NULL if no wetdry data is available (algorithm will assume that the logger was always dry)
@@ -31,9 +31,9 @@
 #' @param backward run algorithm from end to start
 #' @param NOAA.OI.location directory location of NOAA OI V2 NCDF files as well as land mask file 'lsmask.oisst.v2.nc' (downloadable from http://www.esrl.noaa.gov/psd/data/gridded/data.noaa.oisst.v2.highres.html)
 #' @return A list with: [1] all positions, [2] geographic median positions, [3] all possible particles, [4] input parameters, [5] model run time. List items 1 to 3 are returned as SpatialPointsDataframe.
-#' @details Many weighting parameters can be used. Some others (which are not yet implemented) are: surface air temperature and topography/ bathymetry.
+#' @details Many weighting parameters can be used. Some others (which are not yet implemented) are: surface air temperature, air pressure, water salinity, and topography/ bathymetry.
 #' @import ncdf4
-#' @import geosphere
+#' @ImportFrom sp spDists
 #' @import GeoLight
 #' @import SGAT
 #' @import sf
@@ -47,7 +47,7 @@
 #'end   <- as.POSIXct("2014-12-22 08:55", tz="UTC")
 #'
 #'# light data ----
-#'trn           <- twilightCalc(BBA_lux$dtime, BBA_lux$lig, ask = FALSE, LightThreshold = 2)
+#'trn           <- twilightCalc(BBA_lux$dtime, BBA_lux$lig, ask = FALSE, LightThreshold = 2, maxLight = 5)
 #'
 #'# sst data ----
 #'sen           <- sst_deduction(datetime = BBA_sst$dtime, temp = BBA_sst$temp, temp.range = c(-2,30))
@@ -75,20 +75,18 @@
 #'
 #'# run algorithm ----
 #'pr   <- prob_algorithm(trn                         = trn, 
-#'                       sensor                      = sen, 
+#'                       sensor                      = sen[sen$SST.remove==F,], 
 #'                       act                         = act, 
-#'                       tagging.date                = start, 
-#'                       retrieval.date              = end, 
+#'                       tagging.date                = min(trn$tFirst), 
+#'                       retrieval.date              = max(trn$tSecond), 
 #'                       loess.quartile              = NULL, 
 #'                       tagging.location            = c(-36.816,-54.316), 
-#'                       particle.number             = 1000, 
+#'                       particle.number             = 2000, 
 #'                       iteration.number            = 100,
 #'                       sunrise.sd                  = tw,
 #'                       sunset.sd                   = tw,
 #'                       range.solar                 = c(-7,-1),
 #'                       boundary.box                = c(-120,40,-90,0),
-#'                       days.around.spring.equinox  = c(0,0), 
-#'                       days.around.fall.equinox    = c(0,0),
 #'                       speed.dry                   = c(12,6,45),
 #'                       speed.wet                   = c(1,1.3,5), 
 #'                       sst.sd                      = 0.5,       
@@ -96,14 +94,16 @@
 #'                       east.west.comp              = T,
 #'                       land.mask                   = T, 
 #'                       ice.conc.cutoff             = 1, 
+#'                       tol                         = 0.08,
 #'                       wetdry.resolution           = 1,
+#'                       distance.method             = "ellipsoid"
 #'                       NOAA.OI.location            = "folder with environmental data and land mask")
 #'
 #'# plot lat, lon, SST vs time ----
-#'plot_timeline(pr, solar.angle = NULL)
+#'plot_timeline(pr, solar.angle = mean(pr[[2]]$median.solar.angle))
 #'
 #'# plot lon vs lat map ----
-#'plot_map(pr)
+#'plot_map(pr, legend.position = "topright")
 #' @export
 
 
@@ -111,31 +111,31 @@ prob_algorithm <- function(
     particle.number             = 100,
     iteration.number            = 10,
     loess.quartile              = NULL,
-    trn                         = trn ,
-    sensor                      = sen ,
-    act                         = act ,
+    trn                         = trn,
+    sensor                      = sen,
+    act                         = act,
     tagging.date                = start, 
     retrieval.date              = end,
     tol                         = 0.08,
-    tagging.location            = c(-36.816,-54.316) ,
+    tagging.location            = c(-36.816,-54.316),
+    boundary.box                = c(-180,180,-90,90),
     sunrise.sd                  = tw,
     sunset.sd                   = tw,
     range.solar                 = c(-7,-1),
     speed.wet                   = c(20,0.2,25),
     speed.dry                   = c(20,0.2,25),
-    sst.sd                      = 0.5       ,
-    max.sst.diff                = 3         ,
-    days.around.spring.equinox  = c(10,10)   ,
-    days.around.fall.equinox    = c(10,10) ,
+    sst.sd                      = 0.5,
+    max.sst.diff                = 3,
+    # days.around.spring.equinox  = c(10,10),
+    # days.around.fall.equinox    = c(10,10),
     ice.conc.cutoff             = 1,
-    boundary.box                = c(-180,180,-90,90),
-    med.sea                     = T        ,
-    black.sea                   = T        ,
-    baltic.sea                  = T      ,
-    caspian.sea                 = T    ,
-    land.mask                   = T,
-    east.west.comp              = T ,  
     wetdry.resolution           = 1,
+    east.west.comp              = T,  
+    land.mask                   = T,
+    med.sea                     = T,
+    black.sea                   = T,
+    baltic.sea                  = T,
+    caspian.sea                 = T,
     backward                    = F,
     distance.method             = "ellipsoid", # c("spherical", "ellipsoid") spherical is slower but uses s2, ellipsoid is much faster and uses great circle on ellipsoid
     NOAA.OI.location            = 'E:/environmental data/SST/NOAA OI SST V2'){
