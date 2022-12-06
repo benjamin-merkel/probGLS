@@ -117,3 +117,61 @@ load_landmask <- function(FILE_NAME, LONS, LATS){
   
   return(ncdat)
 }
+
+
+#' Internal function to plot polygon shapes in plot_timeline
+#' 
+#' This internal function determines polygon shapes to plot in plot_timeline
+#' @param data1 data in x dimension to be plotted
+#' @param data2 data in y dimension to be plotted
+#' @param prob1 lower quantile considered
+#' @param prob2 upper quantile considered
+
+poly_frame<-function(data1, data2, prob1, prob2){
+  polyf <- data.frame(c(unique(data1[order(data1)]),
+                        unique(data1[order(data1, decreasing=T)])),
+                      c(tapply(data2,data1,quantile, probs = prob1,na.rm=T),
+                        tapply(data2,data1,quantile, probs = prob2,na.rm=T)[order(as.numeric(names(tapply(data2,data1,quantile, probs = prob2,na.rm=T))),decreasing=T)]))
+  return(polyf)
+}
+
+
+#' Internal function to calculate minimum convex polygon (MCP)
+#' 
+#' This internal function calculates minimum convex polygons (MCP) without calculating area and without minimum required points to be independent of adehabitatHR.
+#' @param xy data in x dimension to be plotted
+#' @param percent Percentage considered to determine MCP
+#' @param prob1 lower quantile considered
+#' @param prob2 upper quantile considered
+
+fun_mcp <- function (xy, percent = 100) {
+  
+  xy <- as.data.frame(st_coordinates(xy))
+  r <- split(xy, id)
+  est.cdg <- function(xy) apply(xy, 2, mean)
+  cdg <- lapply(r, est.cdg)
+  levid <- levels(id)
+  res <- SpatialPolygons(lapply(1:length(r), function(i) {
+    k <- levid[i]
+    df.t <- r[[levid[i]]]
+    cdg.t <- cdg[[levid[i]]]
+    dist.cdg <- function(xyt) {
+      d <- sqrt(((xyt[1] - cdg.t[1])^2) + ((xyt[2] - cdg.t[2])^2))
+      return(d)
+    }
+    di <- apply(df.t, 1, dist.cdg)
+    key <- c(1:length(di))
+    acons <- key[di <= quantile(di, percent/100)]
+    xy.t <- df.t[acons, ]
+    coords.t <- chull(xy.t[, 1], xy.t[, 2])
+    xy.bord <- xy.t[coords.t, ]
+    xy.bord <- rbind(xy.bord[nrow(xy.bord), ], xy.bord)
+    so <- Polygons(list(Polygon(as.matrix(xy.bord))), k)
+    return(so)
+  }))
+  df <- data.frame(id = unlist(lapply(1:nlevels(id), function(i) res[i]@polygons[[1]]@ID)))
+  row.names(df) <- df[, 1]
+  res <- SpatialPolygonsDataFrame(res, df)
+  return(res)
+}
+
