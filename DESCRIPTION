@@ -1,13 +1,14 @@
 Package: probGLS
 Title: probabilistic algorithm for geolocation data
 Version: 0.9.7
-Author: Benjamin Merkel <merkel.scholar@gmail.no>
-Maintainer: Benjamin Merkel <merkel.scholar@gmail.no>
+Authors@R: c(
+    as.person("Benjamin Merkel <merkel.scholar@gmail.no> [aut,cre]"))
 Description: A probabilistic algorithm to reconstruct geographic locations from light-level geolocation data.
-Depends: R (>= 4.2.2), sf, SGAT, GeoLight, geosphere, ncdf4, stringr
+Depends: R (>= 4.2.2)
+Imports: sf, SGAT, GeoLight, geosphere, ncdf4, stringr
+Suggests: rnaturalearth, paletteer
 License: GPL (>= 2)
 URL: https://github.com/benjamin-merkel
 RoxygenNote: 7.2.1
 LazyLoad: yes
 LazyData: yes
-Suggests: rnaturalearth, paletteer, adehabitatHR
