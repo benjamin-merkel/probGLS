@@ -16,3 +16,4 @@ fun_weight_speed(x, spd, spw)
 \description{
 Internal function to calculate the weight of each particle given the animals speed
 }
+\keyword{internal}

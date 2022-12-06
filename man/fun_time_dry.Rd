@@ -18,3 +18,4 @@ fun_time_dry(x, y, time_max, wr)
 \description{
 Internal function to calculate the proportion of time between to twilight events a logger was registered as being dry
 }
+\keyword{internal}

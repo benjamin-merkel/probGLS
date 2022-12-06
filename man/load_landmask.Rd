@@ -16,3 +16,4 @@ load_landmask(FILE_NAME, LONS, LATS)
 \description{
 This internal function determines if points are on land using the NOAA OISST V2 land maks file.
 }
+\keyword{internal}

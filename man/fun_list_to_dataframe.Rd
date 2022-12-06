@@ -12,3 +12,4 @@ fun_list_to_dataframe(x)
 \description{
 Internal function to collapse lists into data.frame
 }
+\keyword{internal}

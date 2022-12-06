@@ -15,6 +15,7 @@ prob_algorithm(
   retrieval.date = end,
   tol = 0.08,
   tagging.location = c(-36.816, -54.316),
+  boundary.box = c(-180, 180, -90, 90),
   sunrise.sd = tw,
   sunset.sd = tw,
   range.solar = c(-7, -1),
@@ -22,17 +23,14 @@ prob_algorithm(
   speed.dry = c(20, 0.2, 25),
   sst.sd = 0.5,
   max.sst.diff = 3,
-  days.around.spring.equinox = c(10, 10),
-  days.around.fall.equinox = c(10, 10),
   ice.conc.cutoff = 1,
-  boundary.box = c(-180, 180, -90, 90),
+  wetdry.resolution = 1,
+  east.west.comp = T,
+  land.mask = T,
   med.sea = T,
   black.sea = T,
   baltic.sea = T,
   caspian.sea = T,
-  land.mask = T,
-  east.west.comp = T,
-  wetdry.resolution = 1,
   backward = F,
   distance.method = "ellipsoid",
   NOAA.OI.location = "E:/environmental data/SST/NOAA OI SST V2"
@@ -55,7 +53,11 @@ prob_algorithm(
 
 \item{retrieval.date}{retrieval date as POSIXct or Date object}
 
+\item{tol}{}
+
 \item{tagging.location}{tagging location longitude and latitude}
+
+\item{boundary.box}{min lon, max lon, min lat and max lat of extrem boundary where you expect an animal to be}
 
 \item{sunrise.sd}{output vector from twilight_error_estimation}
 
@@ -71,13 +73,13 @@ prob_algorithm(
 
 \item{max.sst.diff}{max difference in SST allowed in degree C}
 
-\item{days.around.spring.equinox}{days before the Spring equinox and days after the Spring equinox. The Spring equinox is assumed constant at 20 March.}
-
-\item{days.around.fall.equinox}{days before the Fall equinox, days after the Fall equinox. The Fall equinox is assumed constant at 22 September.}
-
 \item{ice.conc.cutoff}{max percentage of sea ice in which the animal is believed to be}
 
-\item{boundary.box}{min lon, max lon, min lat and max lat of extrem boundary where you expect an animal to be}
+\item{wetdry.resolution}{sampling rate of conductivity switch in sec (e.g. MK15 & MK3006 sample every 3 sec)}
+
+\item{east.west.comp}{if T apply biotrack east west movement compensation (Biotrack manual v11 page 31pp.)}
+
+\item{land.mask}{if T animal is only using ocean areas, if F animal is only using land areas, if NULL no land mask used}
 
 \item{med.sea}{if T classifiy mediterranean sea as land}
 
@@ -87,13 +89,9 @@ prob_algorithm(
 
 \item{caspian.sea}{if T classifiy caspian sea as land}
 
-\item{land.mask}{if T animal is only using ocean areas, if F animal is only using land areas, if NULL no land mask used}
-
-\item{east.west.comp}{if T apply biotrack east west movement compensation (Biotrack manual v11 page 31pp.)}
-
-\item{wetdry.resolution}{sampling rate of conductivity switch in sec (e.g. MK15 & MK3006 sample every 3 sec)}
-
 \item{backward}{run algorithm from end to start}
+
+\item{distance.method}{}
 
 \item{NOAA.OI.location}{directory location of NOAA OI V2 NCDF files as well as land mask file 'lsmask.oisst.v2.nc' (downloadable from http://www.esrl.noaa.gov/psd/data/gridded/data.noaa.oisst.v2.highres.html)}
 }
@@ -104,7 +102,7 @@ A list with: [1] all positions, [2] geographic median positions, [3] all possibl
 prob_algorithm is a simple probabilistic algorithm to be used with geolocation data.
 }
 \details{
-Many weighting parameters can be used. Some others (which are not yet implemented) are: surface air temperature and topography/ bathymetry.
+Many weighting parameters can be used. Some others (which are not yet implemented) are: surface air temperature, air pressure, water salinity, and topography/ bathymetry.
 }
 \examples{
 ######################################
@@ -116,7 +114,7 @@ start <- as.POSIXct("2014-12-13 17:55", tz="UTC")
 end   <- as.POSIXct("2014-12-22 08:55", tz="UTC")
 
 # light data ----
-trn           <- twilightCalc(BBA_lux$dtime, BBA_lux$lig, ask = FALSE, LightThreshold = 2)
+trn           <- twilightCalc(BBA_lux$dtime, BBA_lux$lig, ask = FALSE, LightThreshold = 2, maxLight = 5)
 
 # sst data ----
 sen           <- sst_deduction(datetime = BBA_sst$dtime, temp = BBA_sst$temp, temp.range = c(-2,30))
@@ -144,20 +142,18 @@ tw            <- twilight_error_estimation()
 
 # run algorithm ----
 pr   <- prob_algorithm(trn                         = trn, 
-                      sensor                      = sen, 
+                      sensor                      = sen[sen$SST.remove==F,], 
                       act                         = act, 
-                      tagging.date                = start, 
-                      retrieval.date              = end, 
+                      tagging.date                = min(trn$tFirst), 
+                      retrieval.date              = max(trn$tSecond), 
                       loess.quartile              = NULL, 
                       tagging.location            = c(-36.816,-54.316), 
-                      particle.number             = 1000, 
+                      particle.number             = 2000, 
                       iteration.number            = 100,
                       sunrise.sd                  = tw,
                       sunset.sd                   = tw,
                       range.solar                 = c(-7,-1),
                       boundary.box                = c(-120,40,-90,0),
-                      days.around.spring.equinox  = c(0,0), 
-                      days.around.fall.equinox    = c(0,0),
                       speed.dry                   = c(12,6,45),
                       speed.wet                   = c(1,1.3,5), 
                       sst.sd                      = 0.5,       
@@ -165,12 +161,14 @@ pr   <- prob_algorithm(trn                         = trn,
                       east.west.comp              = T,
                       land.mask                   = T, 
                       ice.conc.cutoff             = 1, 
+                      tol                         = 0.08,
                       wetdry.resolution           = 1,
+                      distance.method             = "ellipsoid"
                       NOAA.OI.location            = "folder with environmental data and land mask")
 
 # plot lat, lon, SST vs time ----
-plot_timeline(pr, solar.angle = NULL)
+plot_timeline(pr, solar.angle = mean(pr[[2]]$median.solar.angle))
 
 # plot lon vs lat map ----
-plot_map(pr)
+plot_map(pr, legend.position = "topright")
 }

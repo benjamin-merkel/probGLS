@@ -14,3 +14,4 @@ fun_weight_ice(x, y)
 \description{
 Internal function to calculate the weight of each particle given sea ice concentration
 }
+\keyword{internal}

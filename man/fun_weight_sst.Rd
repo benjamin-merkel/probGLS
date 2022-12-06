@@ -16,3 +16,4 @@ fun_weight_sst(x, y, z)
 \description{
 Internal function to calculate the weight of each particle given SST and tag temperature
 }
+\keyword{internal}
