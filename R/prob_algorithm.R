@@ -538,6 +538,7 @@ prob_exp <- function(
   median.loc.sf$dtime              <- as.POSIXct(tapply(new.loc.df2$dtime, new.loc.df2$step, mean), origin="1970-01-01", tz="UTC")
   median.loc.sf$tFirst             <- as.POSIXct(tapply(new.loc.df2$tFirst, new.loc.df2$step, median), origin="1970-01-01", tz="UTC")
   median.loc.sf$tSecond            <- as.POSIXct(tapply(new.loc.df2$tSecond, new.loc.df2$step, median), origin="1970-01-01", tz="UTC")
+  median.loc.sf$type               <- new.loc.df2$type[1]
   median.loc.sf$tag.sst            <- tapply(new.loc.df2$tag.sst, new.loc.df2$step, mean)
   median.loc.sf$mean.sat.sst       <- tapply(new.loc.df2$sat.sst, new.loc.df2$step, mean)
   median.loc.sf$median.solar.angle <- tapply(new.loc.df2$solar.angle, new.loc.df2$step, median)
