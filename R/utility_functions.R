@@ -3,6 +3,7 @@
 #' 
 #' Internal function to collapse lists into data.frame
 #' @param x List that should be collapsed into a data.frame
+#' @keywords internal
 
 
 fun_list_to_dataframe  <- function(x) function(i) sapply(x, `[[`, i)
@@ -14,6 +15,7 @@ fun_list_to_dataframe  <- function(x) function(i) sapply(x, `[[`, i)
 #' @param y act data.frame given to prob_algorithm
 #' @param time_max End time point
 #' @param wr sampling rate of conductivity switch in sec (e.g. MK15 & MK3006 sample every 3 sec) as given to prob_algorithm
+#' @keywords internal
 
 
 fun_time_dry <- function (x, y, time_max, wr) {
@@ -35,6 +37,7 @@ fun_time_dry <- function (x, y, time_max, wr) {
 #' @param x point cloud data.frame
 #' @param spd speed.dry given to prob_algorithm
 #' @param spw speed.wet given to prob_algorithm
+#' @keywords internal
 
 
 fun_weight_speed <- function(x, spd, spw) {
@@ -58,6 +61,7 @@ fun_weight_speed <- function(x, spd, spw) {
 #' @param x point cloud data.frame
 #' @param y sst.sd given to prob_algorithm
 #' @param z max.sst.diff given to prob_algorithm
+#' @keywords internal
 
 
 fun_weight_sst   <- function(x, y, z) {   
@@ -74,6 +78,7 @@ fun_weight_sst   <- function(x, y, z) {
 #' Internal function to calculate the weight of each particle given sea ice concentration
 #' @param x point cloud data.frame
 #' @param y ice.conc.cutoff given to prob_algorithm
+#' @keywords internal
 
 
 fun_weight_ice   <- function(x, y) {   
@@ -89,6 +94,7 @@ fun_weight_ice   <- function(x, y) {
 #' @param FILE_NAME landmask file name with path
 #' @param LONS Point longitudes
 #' @param LATS Point latitudes
+#' @keywords internal
 
 
 load_landmask <- function(FILE_NAME, LONS, LATS){
@@ -119,15 +125,15 @@ load_landmask <- function(FILE_NAME, LONS, LATS){
 }
 
 
-#' Internal function to calculate minimum convex polygon (MCP)
+#' Calculate MCPs
 #' 
-#' This internal function calculates minimum convex polygons (MCP) without calculating area and without minimum required points to be independent of adehabitatHR.
+#' This function calculates minimum convex polygons (MCP) without calculating area and without minimum required points. IT is independent of adehabitatHR.
 #' @param xy data in x dimension to be plotted
 #' @param percent Percentage considered to determine MCP
 #' @param prob1 lower quantile considered
 #' @param prob2 upper quantile considered
 
-fun_mcp <- function (xy, percent = 100) {
+calc_mcp <- function (xy, percent = 100) {
   
   id      <- xy[[1]]
   id      <- factor(id)
