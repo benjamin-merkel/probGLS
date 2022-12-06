@@ -4,12 +4,12 @@
 \alias{plot_timeline}
 \title{plot timeline of algorithm output}
 \usage{
-plot_timeline(pr, degElevation = NULL, center.longitude = 0)
+plot_timeline(pr, solar.angle = NULL, center.longitude = 0)
 }
 \arguments{
 \item{pr}{probGLS algorithm output}
 
-\item{degElevation}{sun elevation angle for comparison threshold method, if NULL no threshold positions are plotted}
+\item{solar.angle}{sun elevation angle for comparison threshold method, if NULL no threshold positions are plotted}
 
 \item{center.longitude}{around which longitude should the plot be centered? Only 0 and 180 implemented}
 }
