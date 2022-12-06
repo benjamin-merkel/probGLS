@@ -44,11 +44,10 @@ plot_map <- function(pr, legend.position = "topleft"){
   x1 <- st_transform(x1, proj)
   x2 <- st_transform(x2, proj)
   
-  x1 <- as_Spatial(x1)
-  mcp95<- st_as_sf(mcp(x1[,"step"], percent = 95))
-  mcp75<- st_as_sf(mcp(x1[,"step"], percent = 75))
-  mcp50<- st_as_sf(mcp(x1[,"step"], percent = 50))
-  mcp25<- st_as_sf(mcp(x1[,"step"], percent = 25))
+  mcp95<- fun_mcp(x1[,"step"], percent = 95)
+  mcp75<- fun_mcp(x1[,"step"], percent = 75)
+  mcp50<- fun_mcp(x1[,"step"], percent = 50)
+  mcp25<- fun_mcp(x1[,"step"], percent = 25)
   
   mcp95_all <- st_union(mcp95)
   mcp75_all <- st_union(mcp75)

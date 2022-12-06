@@ -10,6 +10,14 @@
 
 plot_timeline <- function(pr, solar.angle = NULL, center.longitude = 0){
   
+  poly_frame<-function(data1, data2, prob1, prob2){
+    polyf <- data.frame(c(unique(data1[order(data1)]),
+                          unique(data1[order(data1, decreasing=T)])),
+                        c(tapply(data2,data1,quantile, probs = prob1,na.rm=T),
+                          tapply(data2,data1,quantile, probs = prob2,na.rm=T)[order(as.numeric(names(tapply(data2,data1,quantile, probs = prob2,na.rm=T))),decreasing=T)]))
+    return(polyf)
+  }
+  
   if(as.character(pr[[4]]$chosen[pr[[4]]$parameter=="sensor.data"])=="TRUE") SST=T else SST=F
   
   if(center.longitude==180){
