@@ -6,10 +6,10 @@ bibentry(
   author = c(
     person(c("Benjamin"),"Merkel",role="aut"),
     person(c("Richard", "A."),"Phillips",role="aut"),
-    person(c("Sébastien"),"Descamps",role="aut"),
+    person(c("Sebastien"),"Descamps",role="aut"),
     person(c("Nigel", "G."),"Yoccoz",role="aut"),
-    person(c("Børge"),"Moe",role="aut"),
-    person(c("Hallvard"),"Strøm",role="aut")),
+    person(c("Boerge"),"Moe",role="aut"),
+    person(c("Hallvard"),"Stroem",role="aut")),
   journal = "Movement Ecology",
   issue = "1",
   volume = "4",
