@@ -11,6 +11,9 @@
 
 plot_map <- function(pr, legend.position = "topleft"){
   
+  library(rnaturalearth)
+  library(paletteer)
+  
   x1 <- pr[[1]]
   x2 <- pr[[2]]
   
@@ -30,7 +33,11 @@ plot_map <- function(pr, legend.position = "topleft"){
   sf::sf_use_s2(FALSE)
   
   land <- ne_countries(type = 'countries', scale = 'medium')
-  land <- st_transform(st_crop(st_as_sf(land), extent(boundary)), proj)
+  land <- st_transform(st_crop(st_as_sf(land), 
+                               xmin = boundary[1], 
+                               xmax = boundary[2], 
+                               ymin = boundary[3], 
+                               ymax = boundary[4]), proj)
   
   colony <- st_transform(colony, proj)
   

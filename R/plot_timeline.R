@@ -13,9 +13,9 @@ plot_timeline <- function(pr, solar.angle = NULL, center.longitude = 0){
   if(as.character(pr[[4]]$chosen[pr[[4]]$parameter=="sensor.data"])=="TRUE") SST=T else SST=F
   
   if(center.longitude==180){
-    x1 <- data.frame(x1)
+    x1 <- data.frame(pr[[1]])
     x1$lon[x1$lon<0] <- x1$lon[x1$lon<0]+360
-    x2 <- data.frame(x2)
+    x2 <- data.frame(pr[[2]])
     x2$lon[x2$lon<0] <- x2$lon[x2$lon<0]+360
     if(!is.null(solar.angle)) {
       x3 <-trn
@@ -23,8 +23,8 @@ plot_timeline <- function(pr, solar.angle = NULL, center.longitude = 0){
     }
     long.label = "Longitude [0 to 360]"
   } else {
-    x1 <- x1
-    x2 <- x2
+    x1 <- pr[[1]]
+    x2 <- pr[[2]]
     if(!is.null(solar.angle)) x3 <-trn
     long.label = "Longitude [-180 to 180]"
   }
@@ -32,6 +32,7 @@ plot_timeline <- function(pr, solar.angle = NULL, center.longitude = 0){
   x1$lon <- st_coordinates(x1)[,1]
   x2$lat <- st_coordinates(x2)[,2]
   x2$lon <- st_coordinates(x2)[,1]
+  x2$jday<- as.numeric(julian(x2$dtime))
   
   if(!is.null(solar.angle)){
     trn <- x2

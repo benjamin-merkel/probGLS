@@ -37,7 +37,6 @@
 #' @import GeoLight
 #' @import SGAT
 #' @import sf
-#' @import sp
 #' @examples
 #'######################################
 #'# example black browed albatross track 
