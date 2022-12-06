@@ -19,4 +19,3 @@ This function is a visual aid to estimate the assumed error around a twilight ev
 \details{
 This function can be used to visualise the error distribution around each twilight event which will be used in the prob_algorithm function. The error is assumed to be log normal distributed. In the case of sunrises, only a small error before and a higher possible error with a long tail after the twilight event is assumed (this is reversed in the case of sunsets).
 }
-

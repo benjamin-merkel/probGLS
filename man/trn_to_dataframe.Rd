@@ -27,4 +27,3 @@ trn           <- twilightCalc(BBA_lux$dtime, BBA_lux$lig, ask = FALSE, LightThre
 
 summary(trn)
 }
-

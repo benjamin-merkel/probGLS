@@ -25,4 +25,3 @@ modified after trnTrans() in GeoLight by Tamara Emmenegger
 \description{
 transform lotek daylog file data into a data frame with tFirst, tSecond and type
 }
-

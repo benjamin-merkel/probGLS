@@ -4,7 +4,7 @@
 \alias{sst_deduction}
 \title{SST deduction}
 \usage{
-sst_deduction(datetime, temp, temp.range = c(-2, 30))
+sst_deduction(datetime, temp, temp.range = c(-2, 30), plot = T)
 }
 \arguments{
 \item{datetime}{date time object as POSIXct in UTC}
@@ -12,6 +12,8 @@ sst_deduction(datetime, temp, temp.range = c(-2, 30))
 \item{temp}{temperature readings}
 
 \item{temp.range}{min and max of temperature range}
+
+\item{plot}{Logical. Plot the results if TRUE}
 }
 \description{
 SST deduction from logger temperature reading
@@ -29,4 +31,3 @@ sen           <- sst_deduction(datetime = BBA_sst$dtime, temp = BBA_sst$temp, te
 
 summary(sen)
 }
-

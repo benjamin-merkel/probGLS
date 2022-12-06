@@ -4,12 +4,13 @@
 \alias{plot_map}
 \title{plot map of algorithm output}
 \usage{
-plot_map(pr)
+plot_map(pr, legend.position = "topleft")
 }
 \arguments{
 \item{pr}{probGLS algorithm output}
+
+\item{legend.position}{position of colour legend. Options are "topleft", "topright", "bottomleft", and "bottomright"}
 }
 \description{
 plot map of algorithm output
 }
-

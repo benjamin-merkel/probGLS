@@ -16,4 +16,3 @@ plot_timeline(pr, degElevation = NULL, center.longitude = 0)
 \description{
 plot timeline of algorithm output
 }
-
