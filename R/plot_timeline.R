@@ -59,7 +59,7 @@ plot_timeline <- function(pr, solar.angle = NULL, center.longitude = 0){
     
     opar <- par(mfrow=c(3,1),mar=c(0,4,0,0),oma=c(2,0,0,0))
     
-    if(!is.null(solar.angle)) ylim = range(c(range(x1$lat),range(trna$lats))) else ylim = range(x1$lat)
+    if(!is.null(solar.angle)) ylim = range(c(range(x1$lat),range(trn$lats))) else ylim = range(x1$lat)
     plot(x1$jday,x1$lat,col='white',xaxt="n",ylab="Latitude", ylim =ylim)
     abline(v=x1$jday[is.na(x1$solar.angle)],lty=3,col=grey(0.9),lwd = 0.5)
     polygon(poly_frame(x1$jday,x1$lat,0.75,0.25),col=rgb(1,0,0,alpha=0.3) ,border=NA)
@@ -67,7 +67,7 @@ plot_timeline <- function(pr, solar.angle = NULL, center.longitude = 0){
     lines(x2$jday,x2$lat,col='darkred',lwd=1,type="o",cex=1, pch=19)
     if(!is.null(solar.angle)) lines(trn$jday,trn$lats,lwd=1,type="o",cex=1)
     
-    if(!is.null(solar.angle)) ylim = range(c(range(x1$lon),range(trna$lon))) else ylim = range(x1$lon)
+    if(!is.null(solar.angle)) ylim = range(c(range(x1$lon),range(trn$lon))) else ylim = range(x1$lon)
     plot(x1$jday,x1$lon,col='white',xaxt="n",ylab=long.label, ylim = ylim)
     polygon(poly_frame(x1$jday,x1$lon,0.75,0.25),col=rgb(1,0,0,alpha=0.3) ,border=NA)
     polygon(poly_frame(x1$jday,x1$lon,0.95,0.05),col=rgb(1,0,0,alpha=0.3) ,border=NA)
