@@ -531,10 +531,11 @@ prob_algorithm <- function(
     }
     if(distance.method == "ellipsoid") dists <- spDists(x, longlat = T) # in km
     sum_dists <- apply(dists,2,sum)
-    x[which(sum_dists == min(sum_dists)),][1,]
+    data.frame(x)[which(sum_dists == min(sum_dists)),][1,]
   }
   
   gm_loc <- t(sapply(split(cbind(new.loc.df2$lon, new.loc.df2$lat), new.loc.df2$step), function (x) geographic_median(x, distance.method)))
+  gm_loc <- data.frame(matrix(unlist(gm_loc), ncol = 2))
   gm_loc <- data.frame(lon = gm_loc[,1], lat = gm_loc[,2])
   
   median.loc.sf                    <- st_as_sf(gm_loc, coords = c("lon", "lat"), crs = 4326)
