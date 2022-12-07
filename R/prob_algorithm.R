@@ -389,7 +389,7 @@ prob_algorithm <- function(
       # select the right time step----
       trn.step      <- trn[trn$step == ts,]
       
-      # calculate bearing and distance to previous locations----
+      # calculate distance to previous locations----
       if(distance.method == "spherical"){
         suppressMessages(sf_use_s2(T))
         gdist <- lapply(loc.list, FUN = function(x) as.numeric(st_distance(trn.step, x)))  # in meters
@@ -522,14 +522,22 @@ prob_algorithm <- function(
   new.loc.sf$jday2        <- as.numeric(julian(new.loc.sf$dtime))
   new.loc.sf              <- new.loc.sf[order(new.loc.sf$step),]
   
-  # split points by "step" id
-  sfsplit  <- split(new.loc.sf, new.loc.sf$step)
-  
-  # cast them to multipoints and combine
-  sfcomb   <- do.call(c, Map(st_combine, sfsplit))
-  
   # calculate geographic median for each particle cloud----
-  median.loc.sf                    <- st_as_sf(st_point_on_surface(sfcomb))
+  geographic_median <- function(x, distance.method){
+    x <- matrix(x, ncol = 2)
+    if(distance.method == "spherical"){
+      suppressMessages(sf_use_s2(T))
+      dists <- (st_distance(st_as_sf(data.frame(x), coords = c("X1","X2"), crs = 4326)))  # in meters
+    }
+    if(distance.method == "ellipsoid") dists <- spDists(x, longlat = T) # in km
+    sum_dists <- apply(dists,2,sum)
+    x[which(sum_dists == min(sum_dists)),][1,]
+  }
+  
+  gm_loc <- t(sapply(split(cbind(new.loc.df2$lon, new.loc.df2$lat), new.loc.df2$step), function (x) geographic_median(x, distance.method)))
+  gm_loc <- data.frame(lon = gm_loc[,1], lat = gm_loc[,2])
+  
+  median.loc.sf                    <- st_as_sf(gm_loc, coords = c("lon", "lat"), crs = 4326)
   median.loc.sf$dtime              <- as.POSIXct(tapply(new.loc.df2$dtime, new.loc.df2$step, mean), origin="1970-01-01", tz="UTC")
   median.loc.sf$tFirst             <- as.POSIXct(tapply(new.loc.df2$tFirst, new.loc.df2$step, median), origin="1970-01-01", tz="UTC")
   median.loc.sf$tSecond            <- as.POSIXct(tapply(new.loc.df2$tSecond, new.loc.df2$step, median), origin="1970-01-01", tz="UTC")
@@ -542,8 +550,6 @@ prob_algorithm <- function(
   median.loc.sf$mean.weight_speed  <- tapply(new.loc.df2$weight_speed, new.loc.df2$step, mean)
   median.loc.sf$mean.rel_weight    <- tapply(new.loc.df2$rel_weight, new.loc.df2$step, mean)
   
-  sapply(split(new.loc.df2, new.loc.df2$step), function(x) weighted.mean(x$solar.angle, x$rel_weight))
-    
   end.time   <- Sys.time()
   time.taken <- abs(difftime(end.time,start.time,units="mins"))
   
