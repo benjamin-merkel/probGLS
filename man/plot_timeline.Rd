@@ -9,7 +9,7 @@ plot_timeline(pr, solar.angle = NULL, center.longitude = 0)
 \arguments{
 \item{pr}{probGLS algorithm output}
 
-\item{solar.angle}{sun elevation angle for comparison threshold method, if NULL no threshold positions are plotted}
+\item{solar.angle}{solar angle to compare prob_algorithm output with the classical threshold method, if NULL no threshold positions are plotted}
 
 \item{center.longitude}{around which longitude should the plot be centered? Only 0 and 180 implemented}
 }
