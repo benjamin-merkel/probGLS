@@ -7,6 +7,8 @@
 #' @param prob1 lower quantile considered
 #' @param prob2 upper quantile considered
 
+xy <- pr[[1]][,"step"]
+
 calc_mcp <- function (xy, percent = 100) {
   
   id      <- xy[[1]]
@@ -32,6 +34,7 @@ calc_mcp <- function (xy, percent = 100) {
     coords.t <- chull(xy.t[, 1], xy.t[, 2])
     xy.bord  <- xy.t[coords.t, ]
     xy.bord  <- rbind(xy.bord[nrow(xy.bord), ], xy.bord)
+    while(nrow(xy.bord) < 4) xy.bord  <- rbind(xy.bord[nrow(xy.bord), ], xy.bord)
     so       <- st_as_sf(xy.bord, coords = c("X", "Y"), crs = 4326)
     so       <- st_combine(so)
     so       <- st_cast(so, "POLYGON")
