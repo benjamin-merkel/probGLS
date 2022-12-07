@@ -29,7 +29,7 @@ plot_map <- function(pr, legend.position = "topleft"){
   
   
   proj <- paste0("+proj=aeqd +lat_0=",median(st_coordinates(x1)[,2])," +lon_0=",median(st_coordinates(x1)[,1])," +units=km")
-  sf::sf_use_s2(FALSE)
+  suppressMessages(sf_use_s2(F))
   
   land <- ne_countries(type = 'countries', scale = 'medium')
   land <- st_transform(st_crop(st_as_sf(land), 
@@ -54,6 +54,7 @@ plot_map <- function(pr, legend.position = "topleft"){
   mcp25_all <- st_union(mcp25)
   
   pr_eq <- x2[is.na(x2$median.solar.angle),]
+  suppressMessages(sf_use_s2(T))
   
 
   # plot ----
