@@ -7,8 +7,6 @@
 #' @param prob1 lower quantile considered
 #' @param prob2 upper quantile considered
 
-xy <- pr[[1]][,"step"]
-
 calc_mcp <- function (xy, percent = 100) {
   
   id      <- xy[[1]]
