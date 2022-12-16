@@ -8,6 +8,6 @@ Depends: R (>= 4.2.2), sf, SGAT, GeoLight, ncdf4
 Imports: stringr, paletteer, rnaturalearth
 License: GPL (>= 2)
 URL: https://github.com/benjamin-merkel
-RoxygenNote: 7.2.1
+RoxygenNote: 7.2.2
 LazyLoad: yes
 LazyData: yes
