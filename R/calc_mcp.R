@@ -6,6 +6,7 @@
 #' @param percent Percentage considered to determine MCP
 #' @param prob1 lower quantile considered
 #' @param prob2 upper quantile considered
+#' @export
 
 calc_mcp <- function (xy, percent = 100) {
   

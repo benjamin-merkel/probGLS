@@ -107,7 +107,6 @@ Many weighting parameters can be used. Some others (which are not yet implemente
 \examples{
 ######################################
 # example black browed albatross track 
-######################################
 
 # define start and end datetimes ----
 start <- as.POSIXct("2014-12-13 17:55", tz="UTC")
