@@ -367,6 +367,7 @@ prob_algorithm <- function(
   if(backward==F) loc$dtime       <- as.POSIXct(tagging.date)
   if(backward==T) loc$dtime       <- as.POSIXct(retrieval.date)
   loc$jday        <- as.numeric(julian(loc$dtime))
+  loc$date        <- as.Date(loc$dtime)
   
   loc.list        <- vector("list", length = iteration.number)
   loc.list        <- lapply(loc.list, function (x) st_as_sf(loc))
@@ -409,7 +410,7 @@ prob_algorithm <- function(
       # calculate speed and time difference-----
       prev.dtime <- lapply(loc.list, function(x) x$dtime)
       gr2        <- mapply(cbind, gr2, prev.dtime = prev.dtime, iteration = it2, SIMPLIFY = FALSE)
-      time.diff  <- lapply(gr2, function(x) as.numeric(difftime(x$dtime, x$prev.dtime, units="secs")))
+      time.diff  <- lapply(gr2, function(x) abs(as.numeric(difftime(x$dtime, x$prev.dtime, units="secs"))))
       gr2        <- mapply(cbind, gr2, dist_m = gdist, prob.dry = gprob.dry, time.diff = time.diff, SIMPLIFY = FALSE)
       speed_ms   <- lapply(gr2,function(x) x$dist_m / x$time.diff)
       gr2        <- mapply(cbind, gr2, speed_ms = speed_ms, SIMPLIFY = FALSE)
@@ -501,7 +502,8 @@ prob_algorithm <- function(
     step.time <- step.end - step.start
     
     # cat('\r',paste(as.Date(trn.step$dtime)[1],'  -  ',iter," of ",length(unique(trn$step)),' steps      ',sep=""))
-    setTxtProgressBar(progress_bar, value = ts)
+    if(backward==T) ts_display = max(steps) - ts else ts_display = ts
+    setTxtProgressBar(progress_bar, value = ts_display)
   }
   
   
