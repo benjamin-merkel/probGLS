@@ -95,7 +95,7 @@
 #'                       ice.conc.cutoff             = 1, 
 #'                       tol                         = 0.08,
 #'                       wetdry.resolution           = 1,
-#'                       distance.method             = "ellipsoid"
+#'                       distance.method             = "ellipsoid",
 #'                       NOAA.OI.location            = "folder with environmental data and land mask")
 #'
 #'# plot lat, lon, SST vs time ----
@@ -163,7 +163,7 @@ prob_algorithm <- function(
     if(length(landmask.location)==0){
       # stop(paste('no land mask file found in folder',NOAA.OI.location,sep=' '),call.=F)
       cat('\r','no land mask file found - file will be downloaded from noaa.gov')
-      download.file('https://downloads.psl.noaa.gov/Datasets/noaa.oisst.v2.highres/lsmask.oisst.v2.nc', 'data/lsmask.oisst.v2.nc', mode="wb")
+      download.file('https://downloads.psl.noaa.gov/Datasets/noaa.oisst.v2.highres/', 'lsmask.oisst.v2.nc', mode="wb")
       landmask.location <- paste0(getwd(),"/data")
     } else {
       landmask.location <- paste(NOAA.OI.location,landmask.location,sep='/')[1]
