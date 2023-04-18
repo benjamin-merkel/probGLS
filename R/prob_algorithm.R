@@ -9,7 +9,7 @@
 #' @param retrieval.date  retrieval date as POSIXct or Date object
 #' @param sunrise.sd output vector from twilight_error_estimation
 #' @param sunset.sd output vector from twilight_error_estimation 
-#' @param tol 
+#' @param tol the tolerance on the sine of the solar declination. for further detail please refer to the thresholdEstimate function in the SGAT package 
 #' @param range.solar min and max of solar angle range in degree
 #' @param speed.dry optimal speed, speed standard deviation and max speed allowed if logger is dry in m/s
 #' @param speed.wet optimal speed, speed standard deviation and max speed allowed if logger is wet in m/s
