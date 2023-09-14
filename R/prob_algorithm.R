@@ -159,11 +159,11 @@ prob_algorithm <- function(
   
   # test if land mask file is available if chosen ----
   if(!is.null(land.mask)){
-    landmask.location <- list.files(path=NOAA.OI.location,pattern="lsmask.oisst.v2.nc",recursive=T)
+    landmask.location <- list.files(path=NOAA.OI.location,pattern="lsmask.oisst.nc",recursive=T)
     if(length(landmask.location)==0){
       # stop(paste('no land mask file found in folder',NOAA.OI.location,sep=' '),call.=F)
       cat('\r','no land mask file found - file will be downloaded from noaa.gov')
-      download.file('https://downloads.psl.noaa.gov/Datasets/noaa.oisst.v2.highres/', 'lsmask.oisst.v2.nc', mode="wb")
+      download.file('https://downloads.psl.noaa.gov/Datasets/noaa.oisst.v2.highres/lsmask.oisst.nc', 'lsmask.oisst.nc', mode="wb")
       landmask.location <- paste0(getwd(),"/data")
     } else {
       landmask.location <- paste(NOAA.OI.location,landmask.location,sep='/')[1]
